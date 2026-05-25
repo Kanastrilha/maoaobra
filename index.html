@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#EA1D2C" />
+    <link rel="manifest" href="/maoaobra/manifest.json" />
+    <link rel="apple-touch-icon" href="/maoaobra/icon.svg" />
     <meta name="description" content="mãoAobra - Encontre os melhores profissionais de serviços perto de você. Eletricistas, encanadores, diaristas e muito mais." />
     <title>mãoAobra – Serviços na palma da mão</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -17,5 +20,12 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/maoaobra/sw.js');
+        });
+      }
+    </script>
   </body>
 </html>
