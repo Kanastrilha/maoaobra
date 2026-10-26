@@ -1,69 +1,53 @@
-# mãoAobra 🛠️
+# Mão a Obra
 
-O **mãoAobra** é um marketplace de serviços rápidos, criado como projeto acadêmico. Ele funciona como uma plataforma estilo "iFood" para conectar prestadores de serviço (Eletricistas, Encanadores, Diaristas, etc.) a clientes que precisam de reparos imediatos.
+Marketplace de serviços locais — piloto em Cáceres/MT. Plano e decisões em [docs/PLANO.md](docs/PLANO.md).
 
-Este projeto foi construído focando na excelência da Interface do Usuário (UI) e na Experiência do Usuário (UX), possuindo um design responsivo (*Mobile-First*) altamente focado em usabilidade e acessibilidade.
+| Pasta             | O que é                                                          |
+| ----------------- | ---------------------------------------------------------------- |
+| `apps/api`        | API (Node 24, Fastify, Drizzle, Postgres + PostGIS, Better Auth) |
+| `apps/app`        | App Expo Router — iOS, Android e web                             |
+| `packages/shared` | Schemas Zod e tipos usados pela API e pelo app                   |
 
-## 🌟 Principais Funcionalidades
+A v1 (MVP em Firebase) está preservada na tag `mvp-firebase`.
 
-- **Múltiplos Perfis de Usuário:** Diferentes experiências para Clientes, Trabalhadores e Administradores.
-- **Busca por Proximidade Geométrica:** O algoritmo de busca organiza e exibe primeiro os profissionais que estão mais perto do cliente (baseado em Cidade/UF).
-- **Validação Temporal Inteligente:** O profissional escolhe seu horário de expediente. Fora do horário, o sistema bloqueia automaticamente novas solicitações e marca o profissional como "Indisponível".
-- **Sistema de Agendamento e Chat Local:** Fluxos completos de simulação de pedido com notificações e mudança de status em tempo real.
-- **Feedback Sensorial:** O aplicativo conta com *Toast Notifications* visuais acompanhadas de bips de áudio dinâmicos.
-- **Mobile First e Design Premium:** Utilizando TailwindCSS para criar um visual fluído, claro e perfeitamente legível em telas pequenas.
+## Rodando localmente
 
-## 🛠️ Tecnologias Utilizadas
+Pré-requisitos: Node 24+, pnpm (`npm i -g pnpm`) e Docker.
 
-- **[React 19](https://react.dev/)**: Biblioteca central para a criação das interfaces de usuário.
-- **[Vite](https://vitejs.dev/)**: Bundler e ambiente de desenvolvimento ultrarrápido.
-- **[Tailwind CSS v4](https://tailwindcss.com/)**: Framework de estilização utilitária para o design moderno e responsivo.
-- **[Zustand](https://github.com/pmndrs/zustand)**: Gerenciamento global de estado (Mock State).
-- **[Firebase Realtime Database](https://firebase.google.com/)**: Utilizado para persistir os dados mockados, permitindo que a aplicação se comporte como se tivesse um backend real de produção.
-- **[Phosphor Icons / Lucide](https://phosphoricons.com/)**: Iconografia vetorial rica.
-
-## 🚀 Como Executar Localmente
-
-Siga os passos abaixo para rodar a aplicação no seu computador:
-
-1. Clone este repositório:
-   ```bash
-   git clone https://github.com/Kanastrilha/maoaobra.git
-   ```
-
-2. Acesse a pasta do projeto:
-   ```bash
-   cd maoaobra
-   ```
-
-3. Instale as dependências:
-   ```bash
-   npm install
-   ```
-
-4. Inicie o servidor de desenvolvimento:
-   ```bash
-   npm run dev
-   ```
-
-5. O aplicativo estará rodando em `http://localhost:5173`.
-
-## 👥 Contas de Demonstração para Teste
-
-A aplicação inicia com o banco de dados carregado com perfis de teste. Você pode fazer o login sem precisar criar uma conta usando as credenciais abaixo:
-
-**Senha para todas as contas:** `123`
-
-- **Administrador:** `legalmano@gmail.com`
-- **Trabalhador (Eletricista):** `eduardo@gmail.com`
-- **Trabalhador (TI):** `ti@gmail.com`
-- **Cliente:** `pedro@gmail.com`
-
-## 🌐 Deploy
-A aplicação está configurada para rodar nativamente via **GitHub Pages**. Toda alteração na branch `main` pode ser rapidamente publicada no site ao vivo usando o script configurado no projeto:
 ```bash
-npm run deploy
+pnpm install
+pnpm db:up                                  # Postgres + PostGIS em localhost:5434
+
+cp apps/api/.env.example apps/api/.env      # troque o BETTER_AUTH_SECRET
+cp apps/app/.env.example apps/app/.env
+pnpm --filter @maoaobra/api db:migrate
+
+pnpm dev:api                                # http://localhost:3333
+pnpm dev:app                                # Expo: w = web, a = Android, i = iOS
 ```
 
----
-*Projeto desenvolvido para fins educacionais e apresentação de Trabalho de Conclusão (TCC).*
+Login é por celular com código. Em desenvolvimento o código **não é enviado por SMS**: ele aparece no log da API (`[sms] +55... seu código é 123456`).
+
+Para aprovar profissionais você precisa de um admin. Faça login no app com o seu celular e depois:
+
+```bash
+pnpm --filter @maoaobra/api admin:promote "(65) 99999-0000"
+```
+
+Na web, permita a localização no navegador para a busca usar sua posição real (sem permissão, o app usa o centro de Cáceres).
+
+## Qualidade
+
+```bash
+pnpm lint        # Biome
+pnpm typecheck   # tsc em todos os pacotes
+pnpm test        # testes de integração da API contra Postgres real (banco maoaobra_test)
+```
+
+O CI roda os três em todo push e pull request.
+
+## Banco de dados
+
+- Tabelas do domínio ficam em `apps/api/src/db/schema.ts`; as do Better Auth em `auth-schema.ts` (geradas pela CLI dele).
+- Mudou o schema? Gere a migration com `pnpm --filter @maoaobra/api db:generate` e versione a pasta `apps/api/drizzle`.
+- Os testes recriam o banco `maoaobra_test` do zero a cada execução, então também validam as migrations.
