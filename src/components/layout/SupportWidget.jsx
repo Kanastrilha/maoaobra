@@ -30,63 +30,81 @@ export default function SupportWidget() {
   };
 
   return (
-    <div className="fixed bottom-28 md:bottom-6 right-3 md:right-6 z-[9999]">
+    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-[9990]">
       {isOpen ? (
-        <div className="bg-white w-80 rounded-3xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden animate-slide-down h-96">
-          <div className="bg-[#EA1D2C] p-4 flex justify-between items-center text-white">
-            <div className="flex items-center gap-2">
-              <i className="ph-fill ph-headset text-2xl" />
-              <h4 className="font-extrabold text-sm">Suporte mãoAobra</h4>
+        <div className="bg-white w-80 sm:w-88 rounded-2xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden animate-slide-down h-[420px]">
+          <div className="bg-slate-900 px-4 py-3.5 flex justify-between items-center text-white">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#EA1D2C] flex items-center justify-center text-white">
+                <i className="ph-fill ph-headset text-lg" />
+              </div>
+              <div>
+                <h4 className="font-bold text-xs leading-tight">Central de Ajuda</h4>
+                <span className="text-[10px] text-emerald-400 flex items-center gap-1 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Atendimento Online
+                </span>
+              </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-white/80 hover:text-white transition">
-              <i className="ph-bold ph-x text-lg" />
+            <button onClick={() => setIsOpen(false)} className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/80 hover:text-white transition cursor-pointer">
+              <i className="ph-bold ph-x text-sm" />
             </button>
           </div>
-          <div className="flex-1 bg-gray-50 p-4 overflow-y-auto flex flex-col gap-3" ref={chatRef}>
-            <div className="flex items-start gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#EA1D2C] flex items-center justify-center text-white shrink-0">
-                <i className="ph-bold ph-robot text-sm" />
+
+          <div className="flex-1 bg-slate-50 p-4 overflow-y-auto flex flex-col gap-3" ref={chatRef}>
+            <div className="flex items-start gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center text-white shrink-0 mt-0.5">
+                <i className="ph-bold ph-sparkle text-xs" />
               </div>
-              <div className="bg-white border border-gray-200 p-3 rounded-2xl rounded-tl-none text-sm text-[#1F2937] shadow-sm">
-                Olá{currentUser ? `, ${currentUser.nome.split(' ')[0]}` : ''}! Como podemos te ajudar hoje?
+              <div className="bg-white border border-slate-200/80 p-3 rounded-2xl rounded-tl-xs text-xs text-slate-700 shadow-2xs leading-relaxed">
+                Olá{currentUser ? `, ${currentUser.nome.split(' ')[0]}` : ''}! Precisa de ajuda com algum pedido ou cadastro? Envie sua mensagem abaixo.
               </div>
             </div>
             {myTicket?.messages.map((msg, i) => (
               <div key={i} className={`flex items-start gap-2 ${msg.sender === 'USER' ? 'justify-end' : ''}`}>
                 {msg.sender === 'ADMIN' && (
-                  <div className="w-8 h-8 rounded-full bg-[#EA1D2C] flex items-center justify-center text-white shrink-0">
-                    <i className="ph-bold ph-robot text-sm" />
+                  <div className="w-7 h-7 rounded-lg bg-[#EA1D2C] flex items-center justify-center text-white shrink-0 mt-0.5">
+                    <i className="ph-bold ph-headset text-xs" />
                   </div>
                 )}
-                <div className={`p-3 rounded-2xl text-sm shadow-sm ${msg.sender === 'USER' ? 'bg-[#EA1D2C] text-white rounded-tr-none' : 'bg-white border border-gray-200 text-[#1F2937] rounded-tl-none'}`}>
+                <div className={`p-3 rounded-2xl text-xs shadow-2xs max-w-[82%] leading-relaxed ${
+                  msg.sender === 'USER'
+                    ? 'bg-[#EA1D2C] text-white rounded-tr-xs'
+                    : 'bg-white border border-slate-200/80 text-slate-800 rounded-tl-xs'
+                }`}>
                   {msg.text}
-                  <div className={`text-[10px] mt-1 text-right ${msg.sender === 'USER' ? 'text-white/70' : 'text-gray-400'}`}>{msg.time}</div>
+                  <div className={`text-[10px] mt-1 text-right ${msg.sender === 'USER' ? 'text-white/70' : 'text-slate-400'}`}>{msg.time}</div>
                 </div>
               </div>
             ))}
           </div>
-          <div className="p-3 border-t border-gray-100 bg-white flex gap-2">
+
+          <div className="p-3 border-t border-slate-200/80 bg-white flex gap-2">
             <input
               type="text"
               value={message}
               onChange={e => setMessage(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSend()}
-              placeholder="Digite sua dúvida..."
-              className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#EA1D2C]"
+              placeholder="Escreva sua mensagem..."
+              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-medium outline-none focus:border-[#EA1D2C] focus:bg-white transition"
             />
-            <button onClick={handleSend} className="w-10 h-10 rounded-xl bg-[#EA1D2C] text-white flex items-center justify-center hover:bg-[#c41020] transition shrink-0">
-              <i className="ph-bold ph-paper-plane-right" />
+            <button
+              onClick={handleSend}
+              className="w-9 h-9 rounded-xl bg-[#EA1D2C] text-white flex items-center justify-center hover:bg-[#C81422] transition shrink-0 cursor-pointer shadow-xs"
+            >
+              <i className="ph-bold ph-paper-plane-right text-sm" />
             </button>
           </div>
         </div>
       ) : (
         <button
           onClick={() => setIsOpen(true)}
-          className="w-12 h-12 md:w-14 md:h-14 bg-[#EA1D2C] text-white rounded-full flex items-center justify-center shadow-lg shadow-red-500/40 hover:scale-110 transition-transform hover:bg-[#c41020] border-2 border-white relative"
+          title="Suporte mãoAobra"
+          className="h-11 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-full flex items-center gap-2 shadow-lg shadow-slate-900/20 hover:scale-105 transition-all border border-slate-700/60 relative cursor-pointer"
         >
-          <i className="ph-fill ph-chat-teardrop-dots text-2xl md:text-3xl" />
+          <i className="ph-fill ph-chat-teardrop-dots text-lg text-[#EA1D2C]" />
+          <span className="text-xs font-semibold hidden sm:inline">Suporte</span>
           {myTicket?.messages.some(m => m.sender === 'ADMIN') && (
-            <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white" />
           )}
         </button>
       )}

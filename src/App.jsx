@@ -1,10 +1,11 @@
 // src/App.jsx — Router completo
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppStore } from './store';
 
 import Toast from './components/ui/Toast';
 import NavBar from './components/layout/NavBar';
 import SupportWidget from './components/layout/SupportWidget';
+import PrivacyModal from './components/modals/PrivacyModal';
 
 import LoginScreen from './pages/LoginScreen';
 import RegisterScreen from './pages/RegisterScreen';
@@ -28,13 +29,12 @@ function AppRouter() {
     currentView, currentUser,
     selectedWorkerId, setSelectedWorkerId,
     selectedClientId, setSelectedClientId,
-    setCurrentView,
     isLoaded, initFirebase
   } = useAppStore();
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   useEffect(() => {
     initFirebase();
-    // Solicita localização do usuário
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => console.log('Location granted:', pos.coords.latitude, pos.coords.longitude),
@@ -90,64 +90,93 @@ function AppRouter() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-[#F9FAFB] flex flex-col items-center justify-center">
-        <div className="w-16 h-16 border-4 border-[#EA1D2C] border-t-transparent rounded-full animate-spin mb-4" />
-        <h2 className="text-xl font-extrabold text-[#1F2937] animate-pulse">Conectando ao banco de dados...</h2>
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6">
+        <div className="w-16 h-16 rounded-2xl bg-white shadow-lg border border-slate-100 flex items-center justify-center mb-5 relative">
+          <div className="w-10 h-10 border-[3px] border-[#EA1D2C] border-t-transparent rounded-full animate-spin" />
+        </div>
+        <div className="text-xl font-extrabold tracking-tight text-slate-900">
+          mão<span className="text-[#EA1D2C]">A</span>obra
+        </div>
+        <p className="text-xs font-medium text-slate-400 mt-1.5">Sincronizando coleções seguras em tempo real...</p>
       </div>
     );
   }
 
   const hideNav = currentView === 'LOGIN' || currentView === 'REGISTER' || !!selectedWorkerId;
-  const navPaddingClass = !hideNav ? (!currentUser ? 'pt-20' : 'md:pt-20') : '';
-  const footerPadding = (!currentUser || hideNav) ? 'pb-6' : 'pb-24 md:pb-6';
+  const navPaddingClass = !hideNav ? (!currentUser ? 'pt-18' : 'pt-16 md:pt-18') : '';
+  const footerPadding = (!currentUser || hideNav) ? 'pb-8' : 'pb-24 md:pb-8';
 
   let content;
-  if (currentView === 'LOGIN')              content = <LoginScreen />;
-  else if (currentView === 'REGISTER')      content = <RegisterScreen />;
-  else if (selectedWorkerId)                content = <WorkerProfileDetail workerId={selectedWorkerId} onBack={() => setSelectedWorkerId(null)} />;
-  else if (selectedClientId)                content = <ClientProfileDetail clientId={selectedClientId} onBack={() => setSelectedClientId(null)} />;
-  else if (currentView === 'HOME')          content = <HomeContratante onSelectWorker={setSelectedWorkerId} />;
-  else if (currentView === 'CHATS')         content = <ActiveChats />;
-  else if (currentView === 'ORDERS')        content = <ClientOrders />;
-  else if (currentView === 'PROFILE')       content = <ProfileUser />;
-  else if (currentView === 'WORKER_DASH')   content = <WorkerDashboard />;
+  if (currentView === 'LOGIN')                content = <LoginScreen />;
+  else if (currentView === 'REGISTER')        content = <RegisterScreen />;
+  else if (selectedWorkerId)                  content = <WorkerProfileDetail workerId={selectedWorkerId} onBack={() => setSelectedWorkerId(null)} />;
+  else if (selectedClientId)                  content = <ClientProfileDetail clientId={selectedClientId} onBack={() => setSelectedClientId(null)} />;
+  else if (currentView === 'HOME')            content = <HomeContratante onSelectWorker={setSelectedWorkerId} />;
+  else if (currentView === 'CHATS')           content = <ActiveChats />;
+  else if (currentView === 'ORDERS')          content = <ClientOrders />;
+  else if (currentView === 'PROFILE')         content = <ProfileUser />;
+  else if (currentView === 'WORKER_DASH')     content = <WorkerDashboard />;
   else if (currentView === 'WORKER_SERVICES') content = <WorkerServicesCRUD />;
   else if (currentView === 'WORKER_HISTORY')  content = <WorkerHistory />;
   else if (currentView === 'WORKER_PROFILE')  content = <WorkerProfileEdit />;
-  else if (currentView === 'ADMIN_DASH')    content = <AdminDashboard />;
-  else if (currentView === 'ADMIN_CLIENTS') content = <AdminClients />;
-  else if (currentView === 'ADMIN_WORKERS') content = <AdminWorkers />;
+  else if (currentView === 'ADMIN_DASH')      content = <AdminDashboard />;
+  else if (currentView === 'ADMIN_CLIENTS')   content = <AdminClients />;
+  else if (currentView === 'ADMIN_WORKERS')   content = <AdminWorkers />;
   else if (currentView === 'ADMIN_APPROVALS') content = <AdminApprovals />;
-  else if (currentView === 'ADMIN_SUPPORT') content = <AdminSupport />;
-  else if (currentView === 'ADMIN_CHATS')   content = <AdminChats />;
-  else                                      content = <HomeContratante onSelectWorker={setSelectedWorkerId} />;
+  else if (currentView === 'ADMIN_SUPPORT')   content = <AdminSupport />;
+  else if (currentView === 'ADMIN_CHATS')     content = <AdminChats />;
+  else                                        content = <HomeContratante onSelectWorker={setSelectedWorkerId} />;
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] flex flex-col font-sans relative">
-      {/* Decoração de fundo */}
-      <div className="fixed top-[-10%] left-[-10%] w-[500px] h-[500px] bg-red-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
-      <div className="fixed bottom-[20%] right-[-10%] w-[600px] h-[600px] bg-orange-500/5 rounded-full blur-[120px] pointer-events-none z-0" />
-
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans relative selection:bg-red-100 selection:text-[#EA1D2C]">
       <Toast />
       {!hideNav && <NavBar />}
 
-      <main className={`flex-1 w-full relative z-10 ${navPaddingClass} pb-4`}>
+      <main className={`flex-1 w-full relative z-10 ${navPaddingClass}`}>
         {content}
       </main>
 
       <SupportWidget />
+      {showPrivacyModal && <PrivacyModal onClose={() => setShowPrivacyModal(false)} />}
 
-      <footer className={`bg-white border-t border-gray-100 py-5 text-center px-4 relative z-10 ${footerPadding}`}>
-        <div className="flex flex-col items-center gap-0.5">
-          <div className="text-lg font-extrabold tracking-tight">
-            <span className="text-[#1F2937]">mão</span>
-            <span className="text-[#EA1D2C]">A</span>
-            <span className="text-[#1F2937]">obra</span>
+      {!hideNav && (
+        <footer className={`bg-white border-t border-slate-200/80 py-8 px-4 md:px-8 relative z-10 ${footerPadding}`}>
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#EA1D2C] text-white flex items-center justify-center shadow-sm shadow-red-500/20">
+                <i className="ph-bold ph-wrench text-sm" />
+              </div>
+              <div>
+                <div className="text-base font-extrabold tracking-tight leading-none">
+                  <span className="text-slate-900">mão</span>
+                  <span className="text-[#EA1D2C]">A</span>
+                  <span className="text-slate-900">obra</span>
+                </div>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Marketplace de Serviços Profissionais</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-xs font-medium text-slate-500">
+              <span className="flex items-center gap-1.5">
+                <i className="ph-fill ph-shield-check text-emerald-500 text-sm" /> Profissionais Verificados
+              </span>
+              <button
+                onClick={() => setShowPrivacyModal(true)}
+                className="flex items-center gap-1.5 hover:text-[#EA1D2C] transition cursor-pointer"
+              >
+                <i className="ph-fill ph-lock-key text-slate-400 text-sm" /> Política de Privacidade & LGPD
+              </button>
+              <span className="flex items-center gap-1.5">
+                <i className="ph-fill ph-headset text-[#EA1D2C] text-sm" /> Suporte Integrado
+              </span>
+            </div>
+
+            <div className="text-center md:text-right">
+              <p className="text-xs text-slate-400 font-medium">© 2026 mãoAobra Tecnologia. Todos os direitos reservados.</p>
+            </div>
           </div>
-          <p className="text-xs text-gray-400 font-bold uppercase tracking-wide">© 2026 Todos os direitos reservados.</p>
-          <p className="text-[10px] text-gray-300 font-medium mt-1">v0.1.2</p>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 }

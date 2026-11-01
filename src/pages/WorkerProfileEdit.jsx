@@ -1,97 +1,138 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
-import StarRating from '../components/ui/StarRating';
+import { maskCPF, formatPhone } from '../utils/security';
 import Header from '../components/ui/Header';
 import ImageUploader from '../components/ui/ImageUploader';
 
 export default function WorkerProfileEdit() {
-  const { currentUser, workerDetails, logout, reviews, users, setWorkerDetails, showToast, setUsers, setCurrentUser } = useAppStore();
+  const { currentUser, workerDetails, logout, deleteMyAccount, reviews, users, setWorkerDetails, showToast, setUsers, setCurrentUser } = useAppStore();
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [tempBio, setTempBio] = useState('');
 
   const details = workerDetails.find(d => d.user_id === currentUser.id);
   const myReviews = reviews.filter(r => r.worker_id === currentUser.id && !r.isWorkerReview);
-  const dynamicRating = myReviews.length > 0 ? (myReviews.reduce((a,b) => a+b.nota, 0) / myReviews.length).toFixed(1) : (details?.nota_media > 0 ? details.nota_media : 'Novo');
+  const dynamicRating = myReviews.length > 0
+    ? (myReviews.reduce((a, b) => a + b.nota, 0) / myReviews.length).toFixed(1)
+    : (details?.nota_media > 0 ? details.nota_media : 'Novo');
+
+  const inp = "w-full px-3.5 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 outline-none focus:border-[#EA1D2C] bg-white font-medium text-slate-800";
 
   return (
-    <div className="pb-28 animate-fade-in w-full">
-      <Header title="Configurações do Perfil" />
-      <div className="max-w-4xl mx-auto px-4 md:px-0">
-
+    <div className="pb-24 animate-fade-in w-full">
+      <Header
+        title="Configurações Profissionais"
+        subtitle="Gerencie seu horário de expediente, status online, informações públicas e privacidade"
+      />
+      <div className="max-w-5xl mx-auto px-4 md:px-8 space-y-6">
         {/* Hero Card */}
-        <div className="mb-6 relative rounded-3xl shadow-sm border border-gray-100 overflow-hidden bg-white">
-          <div className="h-48 bg-[#1F2937] relative">
-            <img src={details?.banner_url || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&q=60'} className="w-full h-full object-cover opacity-50" alt="banner" />
-            <ImageUploader 
+        <div className="card-pro rounded-2xl overflow-hidden">
+          <div className="h-36 bg-slate-900 relative">
+            <img
+              src={details?.banner_url || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&q=60'}
+              className="w-full h-full object-cover opacity-40"
+              alt="Capa"
+            />
+            <ImageUploader
               pathFolder={`users/${currentUser.id}/banner`}
-              className="absolute top-4 right-4"
+              className="absolute top-3.5 right-3.5"
               onUploadSuccess={(url) => { setWorkerDetails(workerDetails.map(d => d.user_id === currentUser.id ? { ...d, banner_url: url } : d)); showToast('Banner atualizado!'); }}
               onError={(err) => showToast(err, 'error')}
             >
-              <div role="button" className="bg-white/20 hover:bg-white/40 text-white p-2 rounded-xl backdrop-blur transition border border-white/30 text-sm font-bold flex items-center justify-center gap-2">
-                <i className="ph-bold ph-image" /> Alterar Capa
+              <div role="button" className="bg-white/15 hover:bg-white/25 text-white px-3 py-1.5 rounded-xl backdrop-blur-md transition border border-white/20 text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+                <i className="ph-bold ph-camera" /> Alterar Capa
               </div>
             </ImageUploader>
           </div>
-          <div className="p-8 flex flex-col md:flex-row items-center md:items-end gap-6 relative">
-            <div className="relative shrink-0 -mt-20">
-              <img src={currentUser.foto_perfil_url} className="w-32 h-32 rounded-3xl object-cover border-4 border-white shadow-md bg-white" alt={currentUser.nome} />
-              <ImageUploader 
+
+          <div className="p-6 flex flex-col sm:flex-row items-center sm:items-end gap-5 -mt-12 relative">
+            <div className="relative shrink-0">
+              <img
+                src={currentUser.foto_perfil_url}
+                className="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-md bg-white"
+                alt={currentUser.nome}
+              />
+              <ImageUploader
                 pathFolder={`users/${currentUser.id}/avatar`}
-                className="absolute -bottom-2 -right-2"
+                className="absolute -bottom-1.5 -right-1.5"
                 onUploadSuccess={(url) => { setUsers(users.map(u => u.id === currentUser.id ? { ...u, foto_perfil_url: url } : u)); setCurrentUser({ ...currentUser, foto_perfil_url: url }); showToast('Foto atualizada!'); }}
                 onError={(err) => showToast(err, 'error')}
               >
-                <div role="button" className="bg-[#EA1D2C] text-white w-10 h-10 flex items-center justify-center rounded-xl shadow-lg hover:bg-[#c41020] transition border-2 border-white">
-                  <i className="ph-bold ph-pencil-simple text-base" />
+                <div role="button" className="bg-[#EA1D2C] text-white w-8 h-8 flex items-center justify-center rounded-xl shadow-xs hover:bg-[#C81422] transition border-2 border-white cursor-pointer">
+                  <i className="ph-bold ph-pencil-simple text-xs" />
                 </div>
               </ImageUploader>
             </div>
-            <div className="text-center md:text-left flex-1 mt-4 md:mt-0 pb-2">
-              <h2 className="text-2xl font-extrabold text-[#1F2937]">{currentUser.nome}</h2>
-              <p className="text-[#EA1D2C] font-bold text-sm uppercase tracking-widest mt-1">{details?.categorias?.[0]}</p>
-              <div className="flex justify-center md:justify-start items-center gap-2 mt-3 bg-gray-50 inline-flex px-3 py-1.5 rounded-lg border border-gray-200">
-                <i className="ph-fill ph-star text-amber-400 text-lg" />
-                <span className="font-extrabold text-[#1F2937]">{dynamicRating}</span>
+
+            <div className="text-center sm:text-left flex-1">
+              <div className="flex items-center justify-center sm:justify-start gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#EA1D2C] bg-red-50 px-2 py-0.5 rounded-md">
+                  {details?.categorias?.[0]}
+                </span>
+                <span className="text-[11px] font-medium text-slate-400">CPF: {maskCPF(details?.cpf)}</span>
               </div>
+              <h2 className="text-xl font-extrabold text-slate-900 mt-1">{currentUser.nome}</h2>
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200/60">
+              <i className="ph-fill ph-star text-amber-400 text-base" />
+              <span className="font-extrabold text-sm text-slate-900">{dynamicRating}</span>
+              <span className="text-xs text-slate-400 font-medium">({myReviews.length})</span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
             {/* Disponibilidade */}
-            <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
-              <h3 className="text-base font-extrabold text-[#1F2937] uppercase flex items-center gap-2 border-b border-gray-100 pb-4 mb-6">
-                <i className="ph-fill ph-clock text-[#EA1D2C]" /> Disponibilidade
+            <div className="card-pro rounded-2xl p-6">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3 mb-4">
+                <i className="ph-fill ph-clock text-[#EA1D2C] text-base" /> Expediente & Disponibilidade
               </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-200">
+              <div className="space-y-3.5">
+                <div className="flex items-center justify-between bg-slate-50 p-3.5 rounded-xl border border-slate-100">
                   <div>
-                    <div className="font-extrabold text-[#1F2937] text-sm">Status Online</div>
-                    <div className="text-xs text-gray-500 font-bold">Aparecer disponível para clientes</div>
+                    <div className="font-bold text-slate-900 text-xs sm:text-sm">Receber Solicitações (Online)</div>
+                    <div className="text-[11px] text-slate-500">Habilita chamadas dentro do horário comercial</div>
                   </div>
-                  <button onClick={() => { setWorkerDetails(workerDetails.map(w => w.user_id === currentUser.id ? { ...w, isOnline: !w.isOnline } : w)); showToast(details?.isOnline ? 'Você está offline.' : 'Você está online!', details?.isOnline ? 'warning' : 'success'); }} className={`w-14 h-8 rounded-full transition-colors relative ${details?.isOnline ? 'bg-green-500' : 'bg-gray-300'}`}>
-                    <div className={`w-6 h-6 rounded-full bg-white absolute top-1 transition-all shadow-sm ${details?.isOnline ? 'left-7' : 'left-1'}`} />
+                  <button
+                    onClick={() => {
+                      setWorkerDetails(workerDetails.map(w => w.user_id === currentUser.id ? { ...w, isOnline: !w.isOnline } : w));
+                      showToast(details?.isOnline ? 'Você está offline.' : 'Você está online!', details?.isOnline ? 'warning' : 'success');
+                    }}
+                    className={`w-12 h-7 rounded-full transition-colors relative cursor-pointer ${details?.isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                  >
+                    <div className={`w-5 h-5 rounded-full bg-white absolute top-1 transition-all shadow-2xs ${details?.isOnline ? 'left-6' : 'left-1'}`} />
                   </button>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200">
-                  <div className="font-extrabold text-[#1F2937] text-sm mb-2">Horário de Atendimento (Início e Fim)</div>
-                  <div className="flex flex-col md:flex-row items-center gap-2">
-                    <input type="time" defaultValue={details?.horaInicio || '08:00'} onBlur={e => { setWorkerDetails(workerDetails.map(w => w.user_id === currentUser.id ? { ...w, horaInicio: e.target.value } : w)); showToast('Horário inicial salvo!'); }} className="w-full md:flex-1 px-3 py-2 text-sm rounded-xl border border-gray-300 outline-none focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]" />
-                    <span className="font-bold text-gray-400 hidden md:inline">até</span>
-                    <input type="time" defaultValue={details?.horaFim || '18:00'} onBlur={e => { setWorkerDetails(workerDetails.map(w => w.user_id === currentUser.id ? { ...w, horaFim: e.target.value } : w)); showToast('Horário final salvo!'); }} className="w-full md:flex-1 px-3 py-2 text-sm rounded-xl border border-gray-300 outline-none focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]" />
+
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                  <div className="font-bold text-slate-900 text-xs mb-2">Horário de Atendimento</div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="time"
+                      defaultValue={details?.horaInicio || '08:00'}
+                      onBlur={e => { setWorkerDetails(workerDetails.map(w => w.user_id === currentUser.id ? { ...w, horaInicio: e.target.value } : w)); showToast('Horário inicial salvo!'); }}
+                      className={inp}
+                    />
+                    <span className="text-xs font-semibold text-slate-400">às</span>
+                    <input
+                      type="time"
+                      defaultValue={details?.horaFim || '18:00'}
+                      onBlur={e => { setWorkerDetails(workerDetails.map(w => w.user_id === currentUser.id ? { ...w, horaFim: e.target.value } : w)); showToast('Horário final salvo!'); }}
+                      className={inp}
+                    />
                   </div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200">
-                  <div className="font-extrabold text-[#1F2937] text-sm mb-2">Dias de Trabalho</div>
+
+                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                  <div className="font-bold text-slate-900 text-xs mb-2">Dias de Atendimento</div>
                   <select
                     defaultValue={details?.diasTrabalho || details?.workingHours?.split(',')[0] || 'Seg-Sex'}
                     onChange={e => {
                       setWorkerDetails(workerDetails.map(w => w.user_id === currentUser.id ? { ...w, diasTrabalho: e.target.value } : w));
                       showToast('Dias de trabalho salvos!');
                     }}
-                    className="w-full px-3 py-2 text-sm rounded-xl border border-gray-300 outline-none focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] bg-white cursor-pointer"
+                    className={inp + ' cursor-pointer'}
                   >
                     <option value="Seg-Sex">Segunda a Sexta</option>
                     <option value="Seg-Sab">Segunda a Sábado</option>
@@ -103,79 +144,120 @@ export default function WorkerProfileEdit() {
               </div>
             </div>
 
-            {/* Contato */}
-            <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
-              <h3 className="text-base font-extrabold text-[#1F2937] uppercase flex items-center gap-2 border-b border-gray-100 pb-4 mb-6">
-                <i className="ph-fill ph-phone text-[#EA1D2C]" /> Contato Público
-              </h3>
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200">
-                <div className="font-extrabold text-[#1F2937] text-sm mb-1">WhatsApp</div>
-                <p className="text-xs text-gray-500 mb-3">Este número ficará visível publicamente no seu perfil para os clientes (Lei Geral de Proteção de Dados).</p>
-                <input type="tel" defaultValue={currentUser.telefone} onBlur={e => { 
-                  const novoTel = e.target.value;
-                  setUsers(users.map(u => u.id === currentUser.id ? { ...u, telefone: novoTel } : u));
-                  setCurrentUser({ ...currentUser, telefone: novoTel });
-                  showToast('WhatsApp público atualizado!');
-                }} className="w-full px-3 py-2 text-sm rounded-xl border border-gray-300 outline-none focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C]" placeholder="(11) 90000-0000" />
+            {/* Contato e Bio */}
+            <div className="card-pro rounded-2xl p-6 space-y-5">
+              <div>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3 mb-3">
+                  <i className="ph-fill ph-whatsapp-logo text-emerald-500 text-base" /> WhatsApp Comercial
+                </h3>
+                <input
+                  type="tel"
+                  defaultValue={currentUser.telefone}
+                  onBlur={e => {
+                    const novoTel = formatPhone(e.target.value);
+                    setUsers(users.map(u => u.id === currentUser.id ? { ...u, telefone: novoTel } : u));
+                    setCurrentUser({ ...currentUser, telefone: novoTel });
+                    showToast('WhatsApp público atualizado!');
+                  }}
+                  className={inp}
+                  placeholder="(11) 90000-0000"
+                />
               </div>
-            </div>
 
-            {/* Bio */}
-            <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
-              <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
-                <h3 className="text-base font-extrabold text-[#1F2937] uppercase flex items-center gap-2"><i className="ph-fill ph-text-aa text-[#EA1D2C]" /> Bio Pública</h3>
-                {!isEditingBio && (
-                  <button onClick={() => { setTempBio(details?.bio || ''); setIsEditingBio(true); }} className="bg-[#EA1D2C]/10 text-[#EA1D2C] p-2 rounded-lg hover:bg-[#EA1D2C] hover:text-white transition">
-                    <i className="ph-bold ph-pencil-simple text-lg" />
-                  </button>
+              <div>
+                <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-3">
+                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <i className="ph-fill ph-text-aa text-[#EA1D2C] text-base" /> Apresentação (Bio)
+                  </h3>
+                  {!isEditingBio && (
+                    <button
+                      onClick={() => { setTempBio(details?.bio || ''); setIsEditingBio(true); }}
+                      className="text-xs font-semibold text-[#EA1D2C] hover:underline cursor-pointer"
+                    >
+                      Editar
+                    </button>
+                  )}
+                </div>
+                {isEditingBio ? (
+                  <div className="animate-fade-in">
+                    <textarea
+                      value={tempBio}
+                      onChange={e => setTempBio(e.target.value)}
+                      rows="4"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 outline-none focus:border-[#EA1D2C] bg-slate-50 mb-2.5 text-xs resize-none"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setWorkerDetails(workerDetails.map(w => w.user_id === currentUser.id ? { ...w, bio: tempBio } : w)); setIsEditingBio(false); showToast('Bio atualizada!'); }}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-xs transition cursor-pointer"
+                      >
+                        Salvar
+                      </button>
+                      <button
+                        onClick={() => setIsEditingBio(false)}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold px-4 py-2 rounded-xl text-xs transition cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-600 leading-relaxed">{details?.bio}</p>
                 )}
               </div>
-              {isEditingBio ? (
-                <div className="animate-fade-in">
-                  <textarea value={tempBio} onChange={e => setTempBio(e.target.value)} rows="4" className="w-full px-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-[#EA1D2C] focus:ring-1 focus:ring-[#EA1D2C] bg-gray-50 mb-3 text-sm" placeholder="Fale sobre sua experiência..." />
-                  <div className="flex gap-2">
-                    <button onClick={() => { setWorkerDetails(workerDetails.map(w => w.user_id === currentUser.id ? { ...w, bio: tempBio } : w)); setIsEditingBio(false); showToast('Bio atualizada!'); }} className="bg-green-500 hover:bg-green-600 text-white font-extrabold px-4 py-2 rounded-xl text-sm transition shadow-md">Salvar</button>
-                    <button onClick={() => setIsEditingBio(false)} className="bg-gray-100 hover:bg-gray-200 text-gray-600 font-extrabold px-4 py-2 rounded-xl text-sm transition">Cancelar</button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-600 leading-relaxed">{details?.bio}</p>
-              )}
             </div>
           </div>
 
-          {/* Reviews */}
-          <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
-            <h3 className="text-base font-extrabold text-[#1F2937] uppercase mb-6 border-b border-gray-100 pb-4 flex items-center gap-2">
-              <i className="ph-fill ph-star text-amber-400" /> Feedback dos Clientes
-            </h3>
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-              {myReviews.length === 0 ? (
-                <div className="text-center py-6"><i className="ph-fill ph-star text-4xl text-gray-200 mb-2" /><p className="text-sm text-gray-500 font-medium">Nenhuma avaliação ainda.</p></div>
-              ) : myReviews.map(r => {
-                const c = users.find(u => u.id === r.user_id);
-                return (
-                  <div key={r.id} className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                    <div className="flex justify-between items-center mb-2">
-                      <div className="flex items-center gap-2">
-                        <img src={c?.foto_perfil_url} className="w-8 h-8 rounded-full object-cover" alt={c?.nome} />
-                        <span className="font-extrabold text-sm text-[#1F2937]">{c?.nome || 'Cliente'}</span>
-                      </div>
-                      <div className="flex">
-                        {[1,2,3,4,5].map(i => <i key={i} className={`text-sm ${i <= r.nota ? 'ph-fill ph-star text-amber-400' : 'ph ph-star text-gray-300'}`} />)}
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-600 font-medium">{r.comentario}</p>
+          {/* Reviews & Account Controls */}
+          <div className="card-pro rounded-2xl p-6 flex flex-col justify-between">
+            <div>
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-3 flex items-center gap-2">
+                <i className="ph-fill ph-star text-amber-400 text-base" /> Avaliações Recebidas
+              </h3>
+              <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                {myReviews.length === 0 ? (
+                  <div className="text-center py-10 bg-slate-50 rounded-xl">
+                    <i className="ph-fill ph-star text-3xl text-slate-300 mb-1.5" />
+                    <p className="text-xs text-slate-500">Nenhuma avaliação recebida ainda.</p>
                   </div>
-                );
-              })}
+                ) : myReviews.map(r => {
+                  const c = users.find(u => u.id === r.user_id);
+                  return (
+                    <div key={r.id} className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <img src={c?.foto_perfil_url} className="w-7 h-7 rounded-full object-cover" alt={c?.nome} />
+                          <span className="font-bold text-xs text-slate-900">{c?.nome || 'Cliente'}</span>
+                        </div>
+                        <div className="flex gap-0.5">
+                          {[1,2,3,4,5].map(i => (
+                            <i key={i} className={`text-xs ph-fill ph-star ${i <= r.nota ? 'text-amber-400' : 'text-slate-200'}`} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-600">{r.comentario}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <button
+                onClick={deleteMyAccount}
+                className="w-full sm:w-auto text-xs font-semibold text-slate-400 hover:text-red-600 py-2 px-3 rounded-xl hover:bg-red-50 transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <i className="ph-bold ph-trash text-sm" /> Excluir Minha Conta (LGPD)
+              </button>
+              <button
+                onClick={logout}
+                className="w-full sm:w-auto bg-slate-900 text-white font-semibold text-xs py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition cursor-pointer"
+              >
+                <i className="ph-bold ph-sign-out text-sm" /> Encerrar Sessão
+              </button>
             </div>
           </div>
         </div>
-
-        <button onClick={logout} className="w-full mt-8 bg-red-50 text-red-600 font-extrabold py-4 px-8 rounded-2xl border border-red-100 flex justify-center items-center gap-2 hover:bg-red-100 transition">
-          <i className="ph-bold ph-sign-out text-xl" /> Sair da conta
-        </button>
       </div>
     </div>
   );

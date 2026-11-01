@@ -10,47 +10,68 @@ export default function WorkerHistory() {
   const myOrders = orders.filter(o => o.worker_id === currentUser.id && ['CONCLUIDO','CANCELADO','RECUSADO'].includes(o.status));
 
   return (
-    <div className="pb-28 animate-fade-in w-full">
-      <Header title="Histórico de Serviços" />
-      <div className="p-4 md:p-8 max-w-7xl mx-auto">
+    <div className="pb-24 animate-fade-in w-full">
+      <Header
+        title="Histórico de Atendimentos"
+        subtitle="Registro completo de serviços concluídos, recusados ou cancelados"
+      />
+      <div className="px-4 md:px-8 max-w-7xl mx-auto">
         {myOrders.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm mt-8">
-            <i className="ph-fill ph-clock-counter-clockwise text-6xl text-gray-200 mb-4" />
-            <h3 className="text-xl font-extrabold text-[#1F2937] mb-2">Nenhum serviço anterior</h3>
-            <p className="text-gray-500 font-medium">Você ainda não possui serviços concluídos ou cancelados.</p>
-          </div>
-        ) : myOrders.map(o => {
-          const client = users.find(u => u.id === o.contratante_id);
-          const servico = services.find(s => s.id === o.servico_id);
-          const done = o.status === 'CONCLUIDO';
-          return (
-            <div key={o.id} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition mb-4 relative overflow-hidden">
-              <div className={`absolute top-0 left-0 w-full h-1.5 ${done ? 'bg-green-500' : 'bg-red-400'}`} />
-              <div className="flex justify-between items-center mb-4 mt-2">
-                <span className={`text-xs font-extrabold px-3 py-1.5 rounded-lg border ${done ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}`}>STATUS: {o.status}</span>
-                <span className="text-xs text-gray-400 font-bold">{o.data}</span>
-              </div>
-              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
-                <div>
-                  <h3 className="font-extrabold text-[#1F2937] text-lg">{servico?.titulo || 'Serviço Personalizado'}</h3>
-                  <span className="font-extrabold text-[#EA1D2C] text-xl">R$ {o.preco_final}</span>
-                </div>
-                <div onClick={() => setSelectedClientId(client?.id)} className="bg-gray-50 p-4 rounded-2xl flex items-center gap-3 border border-gray-100 cursor-pointer hover:bg-gray-200 transition">
-                  <img src={client?.foto_perfil_url} className="w-10 h-10 rounded-full border border-gray-200 object-cover" alt={client?.nome} />
-                  <div>
-                    <span className="text-xs font-bold text-gray-400 uppercase">Cliente</span>
-                    <div className="text-sm font-extrabold text-[#1F2937]">{client?.nome}</div>
-                  </div>
-                </div>
-              </div>
-              {o.chat_history?.length > 0 && (
-                <button onClick={() => setActiveChat(o)} className="w-full bg-gray-100 text-[#1F2937] text-sm font-extrabold py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-200 transition border border-gray-200">
-                  <i className="ph-fill ph-chat-circle-dots text-xl text-[#EA1D2C]" /> Ver Chat Anterior
-                </button>
-              )}
+          <div className="text-center py-14 bg-white rounded-2xl border border-slate-200/80 max-w-md mx-auto">
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+              <i className="ph-fill ph-clock-counter-clockwise text-2xl" />
             </div>
-          );
-        })}
+            <h3 className="text-base font-bold text-slate-900 mb-1">Sem histórico registrado</h3>
+            <p className="text-xs text-slate-500">Seus atendimentos finalizados serão listados aqui.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {myOrders.map(o => {
+              const client = users.find(u => u.id === o.contratante_id);
+              const servico = services.find(s => s.id === o.servico_id);
+              const done = o.status === 'CONCLUIDO';
+              return (
+                <div key={o.id} className="card-pro rounded-2xl p-5 flex flex-col justify-between">
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md border ${
+                        done ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
+                      }`}>
+                        {done ? 'Concluído' : o.status}
+                      </span>
+                      <span className="text-xs text-slate-400 font-medium">{o.data}</span>
+                    </div>
+
+                    <div className="flex items-baseline justify-between gap-2 mb-4">
+                      <h3 className="font-bold text-slate-900 text-base truncate">{servico?.titulo || 'Serviço Personalizado'}</h3>
+                      <span className="font-extrabold text-slate-900 text-base shrink-0">R$ {o.preco_final}</span>
+                    </div>
+
+                    <div
+                      onClick={() => setSelectedClientId(client?.id)}
+                      className="bg-slate-50 p-3 rounded-xl flex items-center gap-3 border border-slate-100 cursor-pointer hover:border-slate-300 transition mb-4"
+                    >
+                      <img src={client?.foto_perfil_url} className="w-9 h-9 rounded-lg border border-slate-200 object-cover" alt={client?.nome} />
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase block">Cliente</span>
+                        <div className="text-xs font-bold text-slate-800 truncate">{client?.nome}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {o.chat_history?.length > 0 && (
+                    <button
+                      onClick={() => setActiveChat(o)}
+                      className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
+                    >
+                      <i className="ph-bold ph-chat-circle-dots text-sm" /> Ver Registro do Chat
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
       {activeChat && <OrderChatModal order={orders.find(o => o.id === activeChat.id)} onClose={() => setActiveChat(null)} />}
     </div>

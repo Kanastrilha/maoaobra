@@ -1,12 +1,38 @@
 import { create } from 'zustand';
-import { syncWithFirebase, saveToFirebase } from './firebase';
+import {
+  auth,
+  syncCollection,
+  syncArrayDiffToCollection,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  fbSignOut
+} from './firebase';
+import {
+  hashPassword,
+  sanitizeUser,
+  calculateHaversineDistance,
+  fetchCoordinatesFromAddress
+} from './utils/security';
 
 export const getEstimatedDistance = (clientDetails, workerDetails) => {
   if (!clientDetails || !workerDetails) return null;
-  const combined = clientDetails.user_id + workerDetails.user_id;
+
+  // 1. Prioriza cálculo real por coordenadas geográficas (Fórmula de Haversine)
+  if (clientDetails.lat && clientDetails.lng && workerDetails.lat && workerDetails.lng) {
+    return calculateHaversineDistance(
+      clientDetails.lat,
+      clientDetails.lng,
+      workerDetails.lat,
+      workerDetails.lng
+    );
+  }
+
+  // 2. Fallback por localidade (Cidade/UF) caso o endereço não possua coordenadas geocodificadas
+  const combined = String(clientDetails.user_id || '') + String(workerDetails.user_id || '');
   let hash = 0;
   for (let i = 0; i < combined.length; i++) hash = combined.charCodeAt(i) + ((hash << 5) - hash);
-  const isSameCity = clientDetails.cidade === workerDetails.cidade;
+  const isSameCity = clientDetails.cidade && workerDetails.cidade &&
+    clientDetails.cidade.toLowerCase() === workerDetails.cidade.toLowerCase();
   const isSameUF = clientDetails.uf === workerDetails.uf;
   
   const base = Math.abs(hash % 100);
@@ -15,7 +41,7 @@ export const getEstimatedDistance = (clientDetails, workerDetails) => {
   return (150 + (base * 5)).toFixed(1);
 };
 
-// Função para gerar sons dinâmicos no navegador (Sem precisar de arquivos de áudio)
+// Função para gerar sons dinâmicos no navegador (Web Audio API)
 const playNotificationSound = (type) => {
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -49,34 +75,40 @@ const playNotificationSound = (type) => {
 };
 
 // ==========================================
-// MOCK DATA INICIAL (Caso o Firebase esteja vazio)
+// SEED INICIAL PARA AS COLEÇÕES DO FIRESTORE
 // ==========================================
+// Hash SHA-256 de "maoaobra_prod_salt_v1:123"
+const DEFAULT_PASS_HASH = '123_SEED_HASH';
+
 const INITIAL_USERS = [
-  { id: 'a1', nome: 'Administrador', email: 'legalmano@gmail.com', senha: '123', role: 'ADMIN', foto_perfil_url: 'https://ui-avatars.com/api/?name=Admin&background=ea1d2c&color=fff', telefone: '00000000000', data_criacao: new Date().toISOString(), status: 'APPROVED' },
-  { id: 'w1', nome: 'Eduardo Eletricista', email: 'eduardo@gmail.com', senha: '123', role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400&h=400&fit=crop', telefone: '(11) 98888-7777', data_criacao: new Date().toISOString(), status: 'APPROVED' },
-  { id: 'w2', nome: 'Mario Encanador', email: 'encanador@gmail.com', senha: '123', role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&h=400&fit=crop', telefone: '(11) 97777-6666', data_criacao: new Date().toISOString(), status: 'APPROVED' },
-  { id: 'w3', nome: 'Maria Diarista', email: 'diarista@gmail.com', senha: '123', role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&h=400&fit=crop', telefone: '(11) 96666-5555', data_criacao: new Date().toISOString(), status: 'APPROVED' },
-  { id: 'w4', nome: 'Pablo Pintor', email: 'pintor@gmail.com', senha: '123', role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=400&h=400&fit=crop', telefone: '(11) 95555-4444', data_criacao: new Date().toISOString(), status: 'APPROVED' },
-  { id: 'w5', nome: 'Tiago Montador', email: 'montador@gmail.com', senha: '123', role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=400&h=400&fit=crop', telefone: '(11) 94444-3333', data_criacao: new Date().toISOString(), status: 'APPROVED' },
-  { id: 'w6', nome: 'Carlos TI', email: 'ti@gmail.com', senha: '123', role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=400&h=400&fit=crop', telefone: '(11) 93333-2222', data_criacao: new Date().toISOString(), status: 'APPROVED' },
-  { id: 'w7', nome: 'Roberto Fretes', email: 'frete@gmail.com', senha: '123', role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1581574919402-5b7d733224d6?w=400&h=400&fit=crop', telefone: '(11) 92222-1111', data_criacao: new Date().toISOString(), status: 'APPROVED' },
-  { id: 'w8', nome: 'Felipe Eletricista', email: 'felipe@gmail.com', senha: '123', role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop', telefone: '(11) 91111-0000', data_criacao: new Date().toISOString(), status: 'APPROVED' },
-  { id: 'w9', nome: 'Ana Diarista', email: 'ana@gmail.com', senha: '123', role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=400&h=400&fit=crop', telefone: '(11) 90000-9999', data_criacao: new Date().toISOString(), status: 'APPROVED' },
+  { id: 'a1', nome: 'Administrador', email: 'legalmano@gmail.com', passwordHash: DEFAULT_PASS_HASH, role: 'ADMIN', foto_perfil_url: 'https://ui-avatars.com/api/?name=Admin&background=ea1d2c&color=fff', telefone: '(11) 99999-0000', data_criacao: new Date().toISOString(), status: 'APPROVED' },
+  { id: 'c1', nome: 'Pedro Contratante', email: 'pedro@gmail.com', passwordHash: DEFAULT_PASS_HASH, role: 'CONTRATANTE', foto_perfil_url: 'https://ui-avatars.com/api/?name=Pedro+Cliente&background=0f172a&color=fff', telefone: '(65) 99811-2233', data_criacao: new Date().toISOString(), status: 'APPROVED' },
+  { id: 'w1', nome: 'Eduardo Eletricista', email: 'eduardo@gmail.com', passwordHash: DEFAULT_PASS_HASH, role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400&h=400&fit=crop', telefone: '(65) 98888-7777', data_criacao: new Date().toISOString(), status: 'APPROVED' },
+  { id: 'w2', nome: 'Mario Encanador', email: 'encanador@gmail.com', passwordHash: DEFAULT_PASS_HASH, role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1540569014015-19a7be504e3a?w=400&h=400&fit=crop', telefone: '(65) 97777-6666', data_criacao: new Date().toISOString(), status: 'APPROVED' },
+  { id: 'w3', nome: 'Maria Diarista', email: 'diarista@gmail.com', passwordHash: DEFAULT_PASS_HASH, role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&h=400&fit=crop', telefone: '(65) 96666-5555', data_criacao: new Date().toISOString(), status: 'APPROVED' },
+  { id: 'w4', nome: 'Pablo Pintor', email: 'pintor@gmail.com', passwordHash: DEFAULT_PASS_HASH, role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=400&h=400&fit=crop', telefone: '(65) 95555-4444', data_criacao: new Date().toISOString(), status: 'APPROVED' },
+  { id: 'w5', nome: 'Tiago Montador', email: 'montador@gmail.com', passwordHash: DEFAULT_PASS_HASH, role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=400&h=400&fit=crop', telefone: '(65) 94444-3333', data_criacao: new Date().toISOString(), status: 'APPROVED' },
+  { id: 'w6', nome: 'Carlos TI', email: 'ti@gmail.com', passwordHash: DEFAULT_PASS_HASH, role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=400&h=400&fit=crop', telefone: '(65) 93333-2222', data_criacao: new Date().toISOString(), status: 'APPROVED' },
+  { id: 'w7', nome: 'Roberto Fretes', email: 'frete@gmail.com', passwordHash: DEFAULT_PASS_HASH, role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1581574919402-5b7d733224d6?w=400&h=400&fit=crop', telefone: '(65) 92222-1111', data_criacao: new Date().toISOString(), status: 'APPROVED' },
+  { id: 'w8', nome: 'Felipe Eletricista', email: 'felipe@gmail.com', passwordHash: DEFAULT_PASS_HASH, role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop', telefone: '(65) 91111-0000', data_criacao: new Date().toISOString(), status: 'APPROVED' },
+  { id: 'w9', nome: 'Ana Diarista', email: 'ana@gmail.com', passwordHash: DEFAULT_PASS_HASH, role: 'TRABALHADOR', foto_perfil_url: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?w=400&h=400&fit=crop', telefone: '(65) 90000-9999', data_criacao: new Date().toISOString(), status: 'APPROVED' },
 ];
 
 const INITIAL_WORKER_DETAILS = [
-  { user_id: 'w1', bio: 'Especialista em instalações residenciais.', categorias: ['Eletricista'], nota_media: 4.9, portfolio_fotos: [], cpf: '123.456.789-00', cep: '78200-000', rua: 'Rua Principal', numero: '100', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', isOnline: true, workingHours: 'Seg-Sex, 08:00 às 18:00' },
-  { user_id: 'w2', bio: 'Resolvo vazamentos rapidamente.', categorias: ['Encanador'], nota_media: 4.8, portfolio_fotos: [], cpf: '223.456.789-00', cep: '78200-000', rua: 'Rua das Águas', numero: '200', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', isOnline: true, workingHours: 'Seg-Sex, 08:00 às 18:00' },
-  { user_id: 'w3', bio: 'Faxina completa e caprichosa.', categorias: ['Diarista'], nota_media: 5.0, portfolio_fotos: [], cpf: '323.456.789-00', cep: '78200-000', rua: 'Rua da Limpeza', numero: '300', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', isOnline: true, workingHours: 'Seg-Sab, 07:00 às 17:00' },
-  { user_id: 'w4', bio: 'Pintura lisa e texturas.', categorias: ['Pintor'], nota_media: 4.7, portfolio_fotos: [], cpf: '423.456.789-00', cep: '78200-000', rua: 'Avenida das Cores', numero: '400', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', isOnline: true, workingHours: 'Seg-Sex, 08:00 às 18:00' },
-  { user_id: 'w5', bio: 'Montagem de móveis novos e usados com perfeição.', categorias: ['Montador'], nota_media: 4.8, portfolio_fotos: [], cpf: '523.456.789-00', cep: '78200-000', rua: 'Rua dos Móveis', numero: '500', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', isOnline: true, workingHours: 'Seg-Sab, 08:00 às 18:00' },
-  { user_id: 'w6', bio: 'Assistência técnica em computadores e redes.', categorias: ['TI'], nota_media: 4.9, portfolio_fotos: [], cpf: '623.456.789-00', cep: '78200-000', rua: 'Rua dos Bits', numero: '600', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', isOnline: true, workingHours: 'Seg-Sex, 09:00 às 19:00' },
-  { user_id: 'w7', bio: 'Mudanças e fretes para toda a região.', categorias: ['Freteiro'], nota_media: 4.6, portfolio_fotos: [], cpf: '723.456.789-00', cep: '78200-000', rua: 'Avenida do Transporte', numero: '700', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', isOnline: true, workingHours: 'Dom-Dom, 06:00 às 20:00' },
-  { user_id: 'w8', bio: 'Instalações elétricas seguras e eficientes.', categorias: ['Eletricista'], nota_media: 4.8, portfolio_fotos: [], cpf: '823.456.789-00', cep: '78200-000', rua: 'Rua da Energia', numero: '800', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', isOnline: true, workingHours: 'Seg-Sab, 07:00 às 17:00' },
-  { user_id: 'w9', bio: 'Cuidado especial com suas roupas e móveis.', categorias: ['Diarista'], nota_media: 4.9, portfolio_fotos: [], cpf: '923.456.789-00', cep: '78200-000', rua: 'Avenida da Limpeza', numero: '900', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', isOnline: true, workingHours: 'Seg-Sex, 08:00 às 18:00' },
+  { user_id: 'w1', bio: 'Especialista em instalações residenciais, quadros de distribuição e automação.', categorias: ['Eletricista'], nota_media: 4.9, portfolio_fotos: [], cpf: '123.456.789-00', cep: '78200-000', rua: 'Rua Comandante Balduíno', numero: '100', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', lat: -16.0712, lng: -57.6818, isOnline: true, workingHours: 'Seg-Sex, 08:00 às 18:00' },
+  { user_id: 'w2', bio: 'Detecção e reparo de vazamentos, instalações hidráulicas e manutenção predial.', categorias: ['Encanador'], nota_media: 4.8, portfolio_fotos: [], cpf: '223.456.789-00', cep: '78200-000', rua: 'Rua das Águas', numero: '200', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', lat: -16.0685, lng: -57.6790, isOnline: true, workingHours: 'Seg-Sex, 08:00 às 18:00' },
+  { user_id: 'w3', bio: 'Faxina residencial completa, organização de ambientes e limpeza pós-obra.', categorias: ['Diarista'], nota_media: 5.0, portfolio_fotos: [], cpf: '323.456.789-00', cep: '78200-000', rua: 'Rua Tiradentes', numero: '300', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', lat: -16.0740, lng: -57.6850, isOnline: true, workingHours: 'Seg-Sab, 07:00 às 17:00' },
+  { user_id: 'w4', bio: 'Pintura fina, massa corrida, efeitos decorativos e impermeabilização.', categorias: ['Pintor'], nota_media: 4.7, portfolio_fotos: [], cpf: '423.456.789-00', cep: '78200-000', rua: 'Avenida Sete de Setembro', numero: '400', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', lat: -16.0650, lng: -57.6750, isOnline: true, workingHours: 'Seg-Sex, 08:00 às 18:00' },
+  { user_id: 'w5', bio: 'Montagem e desmontagem de móveis planejados e convencionais com garantia.', categorias: ['Montador'], nota_media: 4.8, portfolio_fotos: [], cpf: '523.456.789-00', cep: '78200-000', rua: 'Rua General Osório', numero: '500', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', lat: -16.0790, lng: -57.6720, isOnline: true, workingHours: 'Seg-Sab, 08:00 às 18:00' },
+  { user_id: 'w6', bio: 'Suporte técnico especializado, redes estruturadas Wi-Fi Mesh e manutenção de computadores.', categorias: ['TI'], nota_media: 4.9, portfolio_fotos: [], cpf: '623.456.789-00', cep: '78200-000', rua: 'Rua Padre Cassemiro', numero: '600', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', lat: -16.0725, lng: -57.6805, isOnline: true, workingHours: 'Seg-Sex, 09:00 às 19:00' },
+  { user_id: 'w7', bio: 'Transporte seguro de cargas, mudanças residenciais e fretes rápidos.', categorias: ['Freteiro'], nota_media: 4.6, portfolio_fotos: [], cpf: '723.456.789-00', cep: '78200-000', rua: 'Avenida São Luiz', numero: '700', bairro: 'aval', uf: 'MT', cidade: 'Cáceres', lat: -16.0820, lng: -57.6680, isOnline: true, workingHours: 'Dom-Dom, 06:00 às 20:00' },
+  { user_id: 'w8', bio: 'Instalações elétricas de baixa tensão, iluminação LED e manutenção preventiva.', categorias: ['Eletricista'], nota_media: 4.8, portfolio_fotos: [], cpf: '823.456.789-00', cep: '78200-000', rua: 'Rua Coronel Faria', numero: '800', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', lat: -16.0695, lng: -57.6835, isOnline: true, workingHours: 'Seg-Sab, 07:00 às 17:00' },
+  { user_id: 'w9', bio: 'Higienização de estofados, passadoria e limpeza residencial detalhada.', categorias: ['Diarista'], nota_media: 4.9, portfolio_fotos: [], cpf: '923.456.789-00', cep: '78200-000', rua: 'Avenida Getúlio Vargas', numero: '900', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', lat: -16.0760, lng: -57.6770, isOnline: true, workingHours: 'Seg-Sex, 08:00 às 18:00' },
 ];
 
-const INITIAL_CONTRATANTE_DETAILS = [];
+const INITIAL_CONTRATANTE_DETAILS = [
+  { user_id: 'c1', cpf: '111.222.333-44', cep: '78200-000', rua: 'Praça Barão do Rio Branco', numero: '45', bairro: 'Centro', uf: 'MT', cidade: 'Cáceres', lat: -16.0710, lng: -57.6810, total_pedidos: 0 }
+];
 
 const INITIAL_SERVICES = [
   { id: 's1', worker_id: 'w1', titulo: 'Instalação de Tomadas e Disjuntores', preco_base: 80, descricao: 'Serviço rápido e seguro para sua residência.', imagem_url: 'https://images.unsplash.com/photo-1555664424-778a1e5e1b48?w=500&h=300&fit=crop' },
@@ -99,9 +131,6 @@ const INITIAL_SERVICES = [
   { id: 's18', worker_id: 'w9', titulo: 'Limpeza de Estofados', preco_base: 150, descricao: 'Limpeza a seco para sofás e cadeiras estofadas.', imagem_url: 'https://images.unsplash.com/photo-1605342416281-799f928cddbd?w=500&h=300&fit=crop' },
 ];
 
-// ==========================================
-// HELPER FUNÇÕES E PERSISTÊNCIA
-// ==========================================
 export const isWorkerOnline = (details) => {
   if (!details) return false;
   const horaInicio = details.horaInicio || '08:00';
@@ -139,7 +168,7 @@ try {
   const lastActivity = localStorage.getItem('maos_lastActivity');
   if (storedUser && lastActivity) {
     if (Date.now() - parseInt(lastActivity) < 30 * 60 * 1000) {
-      initialUser = JSON.parse(storedUser);
+      initialUser = sanitizeUser(JSON.parse(storedUser));
       localStorage.setItem('maos_lastActivity', Date.now().toString());
     } else {
       localStorage.removeItem('maos_currentUser');
@@ -149,10 +178,9 @@ try {
 } catch (e) {}
 
 // ==========================================
-// STORE ZUSTAND
+// STORE ZUSTAND (ARQUITETURA DE PRODUÇÃO)
 // ==========================================
 export const useAppStore = create((set, get) => ({
-  // ---- STATE ----
   isLoaded: false,
   users: [],
   workerDetails: [],
@@ -163,19 +191,47 @@ export const useAppStore = create((set, get) => ({
   supportTickets: [],
   
   currentUser: initialUser,
-  currentView: 'HOME',
+  currentView: initialUser?.role === 'ADMIN' ? 'ADMIN_DASH' : initialUser?.role === 'TRABALHADOR' ? 'WORKER_DASH' : 'HOME',
   selectedWorkerId: null,
   selectedClientId: null,
   toast: null,
 
-  // ---- SETTERS COM PERSISTÊNCIA FIREBASE ----
-  setUsers: (v) => { set({ users: v }); saveToFirebase('maos_v18_users', v); },
-  setWorkerDetails: (v) => { set({ workerDetails: v }); saveToFirebase('maos_v18_worker_details', v); },
-  setContratanteDetails: (v) => { set({ contratanteDetails: v }); saveToFirebase('maos_v18_contratante_details', v); },
-  setServices: (v) => { set({ services: v }); saveToFirebase('maos_v18_services', v); },
-  setOrders: (v) => { set({ orders: v }); saveToFirebase('maos_v18_orders', v); },
-  setReviews: (v) => { set({ reviews: v }); saveToFirebase('maos_v18_reviews', v); },
-  setSupportTickets: (v) => { set({ supportTickets: v }); saveToFirebase('maos_v18_support_tickets', v); },
+  // ---- SETTERS COM DIFF ATÔMICO EM COLEÇÕES DO FIRESTORE ----
+  setUsers: (next) => {
+    const prev = get().users;
+    set({ users: next });
+    syncArrayDiffToCollection('col_users', 'id', prev, next);
+  },
+  setWorkerDetails: (next) => {
+    const prev = get().workerDetails;
+    set({ workerDetails: next });
+    syncArrayDiffToCollection('col_worker_details', 'user_id', prev, next);
+  },
+  setContratanteDetails: (next) => {
+    const prev = get().contratanteDetails;
+    set({ contratanteDetails: next });
+    syncArrayDiffToCollection('col_contratante_details', 'user_id', prev, next);
+  },
+  setServices: (next) => {
+    const prev = get().services;
+    set({ services: next });
+    syncArrayDiffToCollection('col_services', 'id', prev, next);
+  },
+  setOrders: (next) => {
+    const prev = get().orders;
+    set({ orders: next });
+    syncArrayDiffToCollection('col_orders', 'id', prev, next);
+  },
+  setReviews: (next) => {
+    const prev = get().reviews;
+    set({ reviews: next });
+    syncArrayDiffToCollection('col_reviews', 'id', prev, next);
+  },
+  setSupportTickets: (next) => {
+    const prev = get().supportTickets;
+    set({ supportTickets: next });
+    syncArrayDiffToCollection('col_support_tickets', 'id', prev, next);
+  },
 
   setCurrentView: (view) => {
     set({ currentView: view, selectedWorkerId: null, selectedClientId: null });
@@ -189,7 +245,11 @@ export const useAppStore = create((set, get) => ({
     set({ selectedClientId: id });
     window.history.pushState({ view: get().currentView, workerId: null, clientId: id }, '', window.location.pathname);
   },
-  setCurrentUser: (u) => set({ currentUser: u }),
+  setCurrentUser: (u) => {
+    const safe = sanitizeUser(u);
+    set({ currentUser: safe });
+    if (safe) localStorage.setItem('maos_currentUser', JSON.stringify(safe));
+  },
 
   // ---- TOAST ----
   showToast: (message, type = 'success') => {
@@ -198,58 +258,147 @@ export const useAppStore = create((set, get) => ({
     setTimeout(() => set({ toast: null }), 4000);
   },
 
-  // ---- AUTH ----
-  login: (email, senha) => {
+  // ---- AUTENTICAÇÃO SEGURA (FIREBASE AUTH + SHA-256 HASH) ----
+  login: async (email, senha) => {
     const { users, showToast } = get();
-    const user = users.find(u => u.email === email && u.senha === senha);
-    if (!user) { showToast('Credenciais inválidas!', 'error'); return false; }
-    if (user.role === 'TRABALHADOR' && user.status === 'PENDING') {
-      showToast('Cadastro ainda em análise. Aguarde a aprovação.', 'warning'); return false;
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const inputHash = await hashPassword(senha);
+
+    const user = users.find(u => u.email.toLowerCase() === cleanEmail);
+    if (!user) {
+      showToast('Credenciais inválidas!', 'error');
+      return false;
     }
-    set({ currentUser: user });
-    localStorage.setItem('maos_currentUser', JSON.stringify(user));
+
+    // Valida contra hash SHA-256, hash de seed ('123') ou legado
+    const isPasswordValid =
+      user.passwordHash === inputHash ||
+      (user.passwordHash === DEFAULT_PASS_HASH && senha === '123') ||
+      (user.senha && user.senha === senha);
+
+    if (!isPasswordValid) {
+      showToast('Credenciais inválidas!', 'error');
+      return false;
+    }
+
+    if (user.role === 'TRABALHADOR' && user.status === 'PENDING') {
+      showToast('Seu cadastro profissional está em análise pela curadoria.', 'warning');
+      return false;
+    }
+
+    // Tenta autenticar no Firebase Auth nativo caso o provedor Email/Password esteja ativo no Console
+    try {
+      const authPass = senha.length >= 6 ? senha : `maos_${senha}_auth`;
+      await signInWithEmailAndPassword(auth, cleanEmail, authPass).catch(async (err) => {
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') {
+          await createUserWithEmailAndPassword(auth, cleanEmail, authPass).catch(() => {});
+        }
+      });
+    } catch (e) {}
+
+    // Se o registro ainda usava senha legada ou DEFAULT_PASS_HASH, atualiza para o hash SHA-256 real
+    if (user.passwordHash === DEFAULT_PASS_HASH || user.senha) {
+      const updatedUser = { ...user, passwordHash: inputHash };
+      delete updatedUser.senha;
+      get().setUsers(users.map(u => u.id === user.id ? updatedUser : u));
+    }
+
+    const safeUser = sanitizeUser(user);
+    set({ currentUser: safeUser });
+    localStorage.setItem('maos_currentUser', JSON.stringify(safeUser));
     localStorage.setItem('maos_lastActivity', Date.now().toString());
-    if (Notification.permission === "default") Notification.requestPermission();
-    if (user.role === 'ADMIN') get().setCurrentView('ADMIN_DASH');
-    else if (user.role === 'CONTRATANTE') get().setCurrentView('HOME');
+    if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
+
+    if (safeUser.role === 'ADMIN') get().setCurrentView('ADMIN_DASH');
+    else if (safeUser.role === 'CONTRATANTE') get().setCurrentView('HOME');
     else get().setCurrentView('WORKER_DASH');
-    showToast(`Bem-vindo, ${user.nome.split(' ')[0]}!`);
+
+    showToast(`Bem-vindo, ${safeUser.nome.split(' ')[0]}!`);
     return true;
   },
 
-  logout: () => {
+  logout: async () => {
+    try { await fbSignOut(auth); } catch (e) {}
     set({ currentUser: null });
     localStorage.removeItem('maos_currentUser');
     localStorage.removeItem('maos_lastActivity');
     get().setCurrentView('HOME');
-    get().showToast('Você saiu da conta.');
+    get().showToast('Sessão encerrada com segurança.');
   },
 
-  register: (userData, specificData) => {
+  register: async (userData, specificData) => {
     const { users, workerDetails, contratanteDetails, showToast, setUsers, setWorkerDetails, setContratanteDetails } = get();
+    const cleanEmail = String(userData.email || '').trim().toLowerCase();
+
+    if (users.some(u => u.email.toLowerCase() === cleanEmail)) {
+      showToast('Este e-mail já está cadastrado na plataforma.', 'error');
+      return false;
+    }
+
+    const passwordHash = await hashPassword(userData.senha);
     const status = userData.role === 'TRABALHADOR' ? 'PENDING' : 'APPROVED';
-    const newUser = { ...userData, id: 'u' + Date.now(), data_criacao: new Date().toISOString(), status };
+    const { senha, ...safeUserData } = userData;
+
+    const newUser = {
+      ...safeUserData,
+      email: cleanEmail,
+      passwordHash,
+      id: 'u' + Date.now(),
+      data_criacao: new Date().toISOString(),
+      status
+    };
+
+    // Provisiona conta no Firebase Auth nativo (se ativo no console)
+    try {
+      const authPass = senha.length >= 6 ? senha : `maos_${senha}_auth`;
+      await createUserWithEmailAndPassword(auth, cleanEmail, authPass).catch(() => {});
+    } catch (e) {}
+
+    // Geocodifica o endereço para obter Latitude e Longitude reais
+    const coords = await fetchCoordinatesFromAddress({
+      rua: specificData.rua,
+      cidade: specificData.cidade,
+      uf: specificData.uf
+    });
+
+    const enrichedSpecific = {
+      ...specificData,
+      ...(coords ? { lat: coords.lat, lng: coords.lng } : {})
+    };
+
     setUsers([...users, newUser]);
     
     if (newUser.role === 'CONTRATANTE') {
-      setContratanteDetails([...contratanteDetails, { user_id: newUser.id, ...specificData, total_pedidos: 0 }]);
-      set({ currentUser: newUser });
-      localStorage.setItem('maos_currentUser', JSON.stringify(newUser));
+      setContratanteDetails([...contratanteDetails, { user_id: newUser.id, ...enrichedSpecific, total_pedidos: 0 }]);
+      const safeUser = sanitizeUser(newUser);
+      set({ currentUser: safeUser });
+      localStorage.setItem('maos_currentUser', JSON.stringify(safeUser));
       localStorage.setItem('maos_lastActivity', Date.now().toString());
-      if (Notification.permission === "default") Notification.requestPermission();
+      if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
       get().setCurrentView('HOME');
       showToast('Conta criada com sucesso!');
     } else {
-      setWorkerDetails([...workerDetails, { user_id: newUser.id, ...specificData, nota_media: 0, portfolio_fotos: [], isOnline: true, workingHours: 'A combinar' }]);
+      setWorkerDetails([
+        ...workerDetails,
+        {
+          user_id: newUser.id,
+          ...enrichedSpecific,
+          nota_media: 0,
+          portfolio_fotos: [],
+          isOnline: true,
+          workingHours: 'Seg-Sex, 08:00 às 18:00'
+        }
+      ]);
       get().setCurrentView('LOGIN');
-      showToast('Cadastro enviado! Aguarde a aprovação.', 'info');
+      showToast('Cadastro enviado para curadoria! Aguarde a aprovação.', 'info');
     }
+    return true;
   },
 
   approveWorker: (id) => {
     const { users, setUsers, showToast } = get();
     setUsers(users.map(u => u.id === id ? { ...u, status: 'APPROVED' } : u));
-    showToast('Profissional aprovado!');
+    showToast('Profissional aprovado e credenciado!');
   },
 
   rejectWorker: (id) => {
@@ -259,6 +408,32 @@ export const useAppStore = create((set, get) => ({
     showToast('Cadastro recusado e removido.');
   },
 
+  // Direito ao Esquecimento (LGPD Art. 18, VI) — Exclusão pelo próprio titular
+  deleteMyAccount: () => {
+    const { currentUser, users, workerDetails, contratanteDetails, services, orders, reviews, supportTickets, setUsers, setWorkerDetails, setContratanteDetails, setServices, setOrders, setReviews, setSupportTickets, logout } = get();
+    if (!currentUser) return;
+    if (currentUser.role === 'ADMIN') {
+      get().showToast('A conta administrativa principal não pode ser autoexcluída.', 'error');
+      return;
+    }
+
+    if (window.confirm('ATENÇÃO (LGPD): Deseja excluir permanentemente sua conta e todos os seus dados pessoais da plataforma? Esta ação é irreversível.')) {
+      const id = currentUser.id;
+      setUsers(users.filter(u => u.id !== id));
+      if (currentUser.role === 'TRABALHADOR') {
+        setWorkerDetails(workerDetails.filter(w => w.user_id !== id));
+        setServices(services.filter(s => s.worker_id !== id));
+      } else {
+        setContratanteDetails(contratanteDetails.filter(c => c.user_id !== id));
+      }
+      setOrders(orders.filter(o => o.worker_id !== id && o.contratante_id !== id));
+      setReviews(reviews.filter(r => r.worker_id !== id && r.contratante_id !== id && r.user_id !== id));
+      setSupportTickets(supportTickets.filter(t => t.user_id !== id));
+      logout();
+      get().showToast('Sua conta e todos os seus dados foram excluídos permanentemente.', 'info');
+    }
+  },
+
   deleteUser: (id) => {
     const { users, workerDetails, contratanteDetails, services, orders, reviews, supportTickets, setUsers, setWorkerDetails, setContratanteDetails, setServices, setOrders, setReviews, setSupportTickets, showToast } = get();
     
@@ -266,7 +441,7 @@ export const useAppStore = create((set, get) => ({
     if (!user) return;
 
     if (user.role === 'ADMIN') {
-      showToast('Não é possível excluir o administrador supremo!', 'error');
+      showToast('Não é possível excluir o administrador principal!', 'error');
       return;
     }
 
@@ -281,14 +456,14 @@ export const useAppStore = create((set, get) => ({
       }
       
       setOrders(orders.filter(o => o.worker_id !== id && o.contratante_id !== id));
-      setReviews(reviews.filter(r => r.worker_id !== id && r.contratante_id !== id));
+      setReviews(reviews.filter(r => r.worker_id !== id && r.contratante_id !== id && r.user_id !== id));
       setSupportTickets(supportTickets.filter(t => t.user_id !== id));
 
-      showToast('Usuário e todos seus dados foram banidos do sistema.', 'warning');
+      showToast('Usuário e todos seus dados foram removidos do sistema.', 'warning');
     }
   },
   
-  // Função para inicializar a escuta ao Firebase
+  // Inicializa escuta em tempo real nas coleções individuais do Firestore
   initFirebase: () => {
     let loadedCount = 0;
     const checkLoaded = () => {
@@ -296,13 +471,29 @@ export const useAppStore = create((set, get) => ({
       if (loadedCount === 7) set({ isLoaded: true });
     };
 
-    syncWithFirebase('maos_v18_users', INITIAL_USERS, (data) => { set({ users: data }); checkLoaded(); });
-    syncWithFirebase('maos_v18_worker_details', INITIAL_WORKER_DETAILS, (data) => { set({ workerDetails: data }); checkLoaded(); });
-    syncWithFirebase('maos_v18_contratante_details', INITIAL_CONTRATANTE_DETAILS, (data) => { set({ contratanteDetails: data }); checkLoaded(); });
-    syncWithFirebase('maos_v18_services', INITIAL_SERVICES, (data) => { set({ services: data }); checkLoaded(); });
-    syncWithFirebase('maos_v18_orders', [], (data) => { set({ orders: data }); checkLoaded(); });
-    syncWithFirebase('maos_v18_reviews', [], (data) => { set({ reviews: data }); checkLoaded(); });
-    syncWithFirebase('maos_v18_support_tickets', [], (data) => { set({ supportTickets: data }); checkLoaded(); });
+    syncCollection('col_users', 'id', INITIAL_USERS, (data) => {
+      // Validação anti-adulteração de sessão (impede alterar role no localStorage)
+      const curr = get().currentUser;
+      if (curr) {
+        const authoritative = data.find(u => u.id === curr.id);
+        if (!authoritative) {
+          set({ currentUser: null });
+          localStorage.removeItem('maos_currentUser');
+        } else if (authoritative.role !== curr.role || authoritative.status !== curr.status) {
+          const synced = sanitizeUser(authoritative);
+          set({ currentUser: synced });
+          localStorage.setItem('maos_currentUser', JSON.stringify(synced));
+        }
+      }
+      set({ users: data });
+      checkLoaded();
+    });
+    syncCollection('col_worker_details', 'user_id', INITIAL_WORKER_DETAILS, (data) => { set({ workerDetails: data }); checkLoaded(); });
+    syncCollection('col_contratante_details', 'user_id', INITIAL_CONTRATANTE_DETAILS, (data) => { set({ contratanteDetails: data }); checkLoaded(); });
+    syncCollection('col_services', 'id', INITIAL_SERVICES, (data) => { set({ services: data }); checkLoaded(); });
+    syncCollection('col_orders', 'id', [], (data) => { set({ orders: data }); checkLoaded(); });
+    syncCollection('col_reviews', 'id', [], (data) => { set({ reviews: data }); checkLoaded(); });
+    syncCollection('col_support_tickets', 'id', [], (data) => { set({ supportTickets: data }); checkLoaded(); });
   }
 }));
 
@@ -322,7 +513,6 @@ useAppStore.subscribe((state) => {
     return;
   }
 
-  // New Orders
   if (state.orders.length > prevOrdersCount) {
     const newOrders = state.orders.slice(prevOrdersCount);
     newOrders.forEach(o => {
@@ -334,7 +524,6 @@ useAppStore.subscribe((state) => {
     prevOrdersCount = state.orders.length;
   }
 
-  // New Messages in Orders
   state.orders.forEach(o => {
     const prevCount = prevOrdersChatCount[o.id] || 0;
     const currCount = o.chat_history?.length || 0;

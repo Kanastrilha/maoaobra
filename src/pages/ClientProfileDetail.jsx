@@ -19,52 +19,60 @@ export default function ClientProfileDetail({ clientId, onBack }) {
   const canReview = myFinishedOrders.length > 0 && clientReviews.filter(r => r.worker_id === currentUser.id).length < myFinishedOrders.length;
 
   return (
-    <div className="pb-28 animate-fade-in w-full">
+    <div className="pb-24 animate-fade-in w-full">
       <Header title="Perfil do Cliente" showBack onBack={onBack} />
-      <div className="max-w-4xl mx-auto px-4 md:px-0">
-        <div className="mb-6 relative rounded-3xl shadow-sm border border-gray-100 overflow-hidden bg-white">
-          <div className="h-32 bg-[#1F2937] relative">
-            <img src={details?.banner_url || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&q=60'} className="w-full h-full object-cover opacity-50" alt="banner" />
+      <div className="max-w-4xl mx-auto px-4 md:px-8 space-y-6">
+        <div className="card-pro rounded-2xl overflow-hidden">
+          <div className="h-28 bg-slate-900 relative">
+            <img
+              src={details?.banner_url || 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&q=60'}
+              className="w-full h-full object-cover opacity-40"
+              alt="Capa"
+            />
           </div>
-          <div className="p-8 flex flex-col md:flex-row items-center md:items-end gap-6 relative">
-            <div className="relative shrink-0 -mt-20">
-              <img src={client.foto_perfil_url} className="w-24 h-24 rounded-3xl object-cover border-4 border-white shadow-md bg-white" alt={client.nome} />
-            </div>
-            <div className="text-center md:text-left flex-1 mt-4 md:mt-0 pb-2">
-              <h2 className="text-2xl font-extrabold text-[#1F2937]">{client.nome}</h2>
-              <div className="flex justify-center md:justify-start items-center gap-2 mt-3 bg-gray-50 inline-flex px-3 py-1.5 rounded-lg border border-gray-200">
-                <i className="ph-fill ph-star text-amber-400 text-lg" />
-                <span className="font-extrabold text-[#1F2937]">{notaMedia > 0 ? notaMedia : 'Novo cliente'}</span>
+          <div className="p-6 flex flex-col sm:flex-row items-center sm:items-end gap-5 -mt-12 relative">
+            <img
+              src={client.foto_perfil_url}
+              className="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-md bg-white shrink-0"
+              alt={client.nome}
+            />
+            <div className="text-center sm:text-left flex-1">
+              <h2 className="text-xl font-extrabold text-slate-900">{client.nome}</h2>
+              <div className="inline-flex items-center gap-1.5 mt-1.5 bg-amber-50 px-2.5 py-0.5 rounded-md border border-amber-200/60">
+                <i className="ph-fill ph-star text-amber-400 text-xs" />
+                <span className="font-bold text-xs text-slate-800">{notaMedia > 0 ? notaMedia : 'Novo cliente'}</span>
               </div>
             </div>
             {canReview && (
-              <button onClick={() => setShowReviewModal(true)} className="w-full md:w-auto bg-[#EA1D2C] hover:bg-[#c41020] text-white font-extrabold py-3 px-6 rounded-xl transition shadow-lg shadow-red-500/30 transform hover:-translate-y-1">
-                <i className="ph-bold ph-star text-lg mr-2" /> Avaliar Cliente
+              <button
+                onClick={() => setShowReviewModal(true)}
+                className="w-full sm:w-auto bg-[#EA1D2C] hover:bg-[#C81422] text-white font-semibold text-xs py-2.5 px-4 rounded-xl transition cursor-pointer"
+              >
+                <i className="ph-bold ph-star mr-1.5" /> Avaliar Cliente
               </button>
             )}
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100">
-          <h3 className="text-base font-extrabold text-[#1F2937] uppercase mb-6 border-b border-gray-100 pb-4 flex items-center gap-2">
-            <i className="ph-fill ph-star text-[#EA1D2C]" /> Avaliações de Profissionais
+        <div className="card-pro rounded-2xl p-6">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 border-b border-slate-100 pb-3 flex items-center gap-2">
+            <i className="ph-fill ph-star text-[#EA1D2C] text-base" /> Histórico de Avaliações de Profissionais
           </h3>
-          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+          <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">
             {clientReviews.length === 0 ? (
-              <div className="text-center py-6">
-                <i className="ph-fill ph-star text-4xl text-gray-200 mb-2" />
-                <p className="text-sm text-gray-500">Nenhuma avaliação recebida ainda.</p>
+              <div className="text-center py-8 bg-slate-50 rounded-xl">
+                <i className="ph-fill ph-star text-3xl text-slate-300 mb-1.5" />
+                <p className="text-xs text-slate-500">Nenhuma avaliação registrada até o momento.</p>
               </div>
             ) : clientReviews.map(r => {
               const w = users.find(u => u.id === r.worker_id);
               return (
-                <div key={r.id} className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-extrabold text-sm text-[#1F2937]">{w?.nome || 'Profissional'}</span>
+                <div key={r.id} className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="font-bold text-xs text-slate-900">{w?.nome || 'Profissional'}</span>
                     <StarRating rating={r.nota} />
                   </div>
-                  <p className="text-xs text-gray-600">{r.comentario}</p>
-                  <div className="text-[10px] text-gray-400 mt-2">{r.data}</div>
+                  <p className="text-xs text-slate-600">{r.comentario}</p>
                 </div>
               );
             })}

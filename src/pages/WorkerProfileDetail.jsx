@@ -13,6 +13,7 @@ export default function WorkerProfileDetail({ workerId, onBack }) {
   const workerReviews = reviews.filter(r => r.worker_id === workerId && !r.isWorkerReview);
   const [activeTab, setActiveTab] = useState('SOBRE');
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+  const [preselectedServiceId, setPreselectedServiceId] = useState('');
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
   const dynamicRating = workerReviews.length > 0
@@ -69,119 +70,226 @@ export default function WorkerProfileDetail({ workerId, onBack }) {
     showToast('Solicitação enviada com sucesso e agendamento proposto!');
   };
 
-  const openRequest = () => {
-    if (!currentUser) { showToast('Por favor, faça login.', 'warning'); setCurrentView('LOGIN'); return; }
-    if (currentUser.role === 'TRABALHADOR') { showToast('Apenas clientes podem solicitar serviços.', 'error'); return; }
-    if (!finalIsOnline) { showToast('Profissional indisponível no momento.', 'warning'); return; }
+  const openRequest = (srvId = '') => {
+    if (!currentUser) { showToast('Por favor, faça login para solicitar um serviço.', 'warning'); setCurrentView('LOGIN'); return; }
+    if (currentUser.role === 'TRABALHADOR') { showToast('Apenas contas de cliente podem solicitar serviços.', 'error'); return; }
+    if (!finalIsOnline) { showToast('Profissional fora do horário de atendimento.', 'warning'); return; }
+    setPreselectedServiceId(srvId);
     setIsRequestModalOpen(true);
   };
 
-  const tabBtn = (id, label) => (
-    <button onClick={() => setActiveTab(id)} className={`pb-4 font-extrabold whitespace-nowrap border-b-4 transition ${activeTab === id ? 'border-[#EA1D2C] text-[#EA1D2C]' : 'border-transparent text-gray-400 hover:text-[#1F2937]'}`}>{label}</button>
-  );
-
   return (
-    <div className="w-full bg-[#F9FAFB] pb-32 md:pb-12 animate-fade-in relative z-50">
-      {/* Banner */}
-      <div className="relative h-48 md:h-64 bg-[#1F2937] md:rounded-b-[3rem] overflow-hidden">
-        <img src={details.portfolio_fotos?.[0] || worker.foto_perfil_url} className="w-full h-full object-cover opacity-40 mix-blend-overlay blur-sm scale-110" alt="banner" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-        <button onClick={onBack} className="absolute top-6 left-6 bg-white/20 backdrop-blur rounded-full p-3 text-white hover:bg-white/40 transition">
-          <i className="ph-bold ph-arrow-left text-xl" />
-        </button>
+    <div className="w-full bg-[#F8FAFC] pb-28 md:pb-16 animate-fade-in">
+      {/* Top Navigation Bar over Banner */}
+      <div className="relative h-44 md:h-56 bg-slate-900 overflow-hidden">
+        <img
+          src={details.banner_url || details.portfolio_fotos?.[0] || 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1200&q=70'}
+          className="w-full h-full object-cover opacity-35"
+          alt="Capa"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/40 to-transparent" />
+        <div className="max-w-6xl mx-auto px-4 md:px-8 pt-5 relative z-10 flex items-center justify-between">
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-md text-white text-xs font-semibold px-3.5 py-2 rounded-xl border border-white/15 transition cursor-pointer"
+          >
+            <i className="ph-bold ph-arrow-left text-sm" />
+            <span>Voltar aos resultados</span>
+          </button>
+        </div>
       </div>
 
-      <div className="px-4 md:px-8 relative -mt-20 md:-mt-24 max-w-5xl mx-auto">
-        {/* Profile Card */}
-        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-xl border border-gray-100 flex flex-col md:flex-row gap-6 md:items-end">
-          <img src={worker.foto_perfil_url} className="w-32 h-32 md:w-40 md:h-40 rounded-3xl object-cover border-4 border-white shadow-lg bg-white -mt-16 md:-mt-20 shrink-0" alt={worker.nome} />
-          <div className="flex-1">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <h1 className="text-3xl font-extrabold text-[#1F2937]">{worker.nome}</h1>
-                <p className="text-[#EA1D2C] font-extrabold text-sm tracking-widest uppercase mt-1">{details.categorias?.join(', ')}</p>
-              </div>
-              <div className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border shadow-sm ${finalIsOnline ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
-                <div className={`w-2.5 h-2.5 rounded-full ${finalIsOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
-                {finalIsOnline ? 'Disponível' : 'Indisponível'}
-              </div>
+      <div className="max-w-6xl mx-auto px-4 md:px-8 -mt-16 md:-mt-20 relative z-20">
+        {/* Profile Header Card */}
+        <div className="card-pro rounded-2xl p-5 md:p-7">
+          <div className="flex flex-col md:flex-row gap-5 md:items-center">
+            <div className="relative shrink-0 -mt-14 md:-mt-16">
+              <img
+                src={worker.foto_perfil_url}
+                className="w-24 h-24 md:w-32 md:h-32 rounded-2xl object-cover border-4 border-white shadow-md bg-white"
+                alt={worker.nome}
+              />
+              <span
+                className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white ${
+                  finalIsOnline ? 'bg-emerald-500' : 'bg-slate-400'
+                }`}
+              />
             </div>
-            <div className="mt-6 flex flex-wrap gap-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-              <div className="flex flex-col">
-                <div className="flex items-center gap-1 font-extrabold text-xl text-[#1F2937]">
-                  <i className="ph-fill ph-star text-amber-400" /> {dynamicRating > 0 ? dynamicRating : 'Novo'}
-                </div>
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">{workerReviews.length} avaliações</span>
-              </div>
-              <div className="w-px bg-gray-200" />
-              <div className="flex flex-col">
-                <div className="font-extrabold text-xl text-[#1F2937] flex items-center gap-1"><i className="ph-fill ph-wrench text-gray-400" /> {workerServices.length}</div>
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Serviços</span>
-              </div>
-              <div className="w-px bg-gray-200 hidden md:block" />
-              <div className="flex flex-col w-full md:w-auto">
-                <div className="font-extrabold text-base text-[#1F2937] flex items-center gap-1"><i className="ph-fill ph-clock text-[#EA1D2C]" /> {workingHoursDisplay}</div>
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Horários</span>
-              </div>
-              {distance && (
-                <>
-                  <div className="w-px bg-gray-200 hidden md:block" />
-                  <div className="flex flex-col w-full md:w-auto">
-                    <div className="font-extrabold text-base text-[#1F2937] flex items-center gap-1"><i className="ph-fill ph-map-pin text-[#EA1D2C]" /> ~{distance} km</div>
-                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">Distância Estimada</span>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[#EA1D2C] bg-red-50 px-2.5 py-0.5 rounded-md">
+                      {details.categorias?.join(' • ')}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md">
+                      <i className="ph-fill ph-seal-check text-sky-500" /> Identidade Verificada
+                    </span>
                   </div>
-                </>
-              )}
+                  <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 mt-1.5 tracking-tight">
+                    {worker.nome}
+                  </h1>
+                </div>
+
+                <div className={`self-start sm:self-auto px-3.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 border ${
+                  finalIsOnline
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${finalIsOnline ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+                  {finalIsOnline ? 'Disponível para atendimento' : 'Fora do expediente'}
+                </div>
+              </div>
+
+              {/* Metrics Strip */}
+              <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                  <span className="text-[11px] font-medium text-slate-400 block">Avaliação Média</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <i className="ph-fill ph-star text-amber-400 text-base" />
+                    <span className="font-extrabold text-base text-slate-900">{dynamicRating > 0 ? dynamicRating : 'Novo'}</span>
+                    <span className="text-xs text-slate-400">({workerReviews.length})</span>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[11px] font-medium text-slate-400 block">Catálogo</span>
+                  <div className="font-extrabold text-base text-slate-900 mt-0.5 flex items-center gap-1.5">
+                    <i className="ph-fill ph-briefcase text-slate-400 text-sm" />
+                    <span>{workerServices.length} {workerServices.length === 1 ? 'serviço' : 'serviços'}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[11px] font-medium text-slate-400 block">Expediente</span>
+                  <div className="font-bold text-xs sm:text-sm text-slate-800 mt-0.5 flex items-center gap-1.5">
+                    <i className="ph-fill ph-clock text-[#EA1D2C] text-sm shrink-0" />
+                    <span className="truncate">{workingHoursDisplay}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[11px] font-medium text-slate-400 block">Localização</span>
+                  <div className="font-bold text-xs sm:text-sm text-slate-800 mt-0.5 flex items-center gap-1.5">
+                    <i className="ph-fill ph-map-pin text-[#EA1D2C] text-sm shrink-0" />
+                    <span className="truncate">
+                      {details.cidade ? `${details.cidade}, ${details.uf}` : 'Brasil'}
+                      {distance ? ` (~${distance} km)` : ''}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-4 border-b border-gray-200 mt-8 overflow-x-auto hide-scrollbar">
-          {tabBtn('SOBRE', 'Serviços & Portfólio')}
-          {tabBtn('AVALIACOES', `Avaliações (${workerReviews.length})`)}
-        </div>
+        {/* Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          {/* Left Column (2 cols) */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Navigation Tabs */}
+            <div className="flex gap-2 bg-white p-1.5 rounded-2xl border border-slate-200/80 w-fit">
+              <button
+                onClick={() => setActiveTab('SOBRE')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  activeTab === 'SOBRE' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Catálogo & Sobre
+              </button>
+              <button
+                onClick={() => setActiveTab('AVALIACOES')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === 'AVALIACOES' ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <span>Avaliações</span>
+                <span className={`px-1.5 py-0.2 rounded text-[10px] ${activeTab === 'AVALIACOES' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                  {workerReviews.length}
+                </span>
+              </button>
+            </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-          <div className="lg:col-span-2 space-y-8">
             {activeTab === 'SOBRE' && (
               <>
-                <section>
-                  <h2 className="text-xl font-extrabold text-[#1F2937] mb-4 flex items-center gap-2"><i className="ph-fill ph-user-circle text-[#EA1D2C]" /> Sobre o profissional</h2>
-                  <p className="text-gray-600 text-base leading-relaxed bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">{details.bio}</p>
+                {/* Bio */}
+                <section className="card-pro rounded-2xl p-6">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                    <i className="ph-fill ph-user-focus text-[#EA1D2C] text-base" /> Apresentação Profissional
+                  </h2>
+                  <p className="text-slate-700 text-sm leading-relaxed">{details.bio}</p>
                 </section>
 
-                <section>
-                  <h2 className="text-xl font-extrabold text-[#1F2937] mb-4 flex items-center gap-2"><i className="ph-fill ph-list-checks text-[#EA1D2C]" /> Serviços Oferecidos</h2>
-                  <div className="space-y-4">
+                {/* Services */}
+                <section className="card-pro rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                      <i className="ph-fill ph-list-checks text-[#EA1D2C] text-base" /> Tabela de Serviços e Preços Base
+                    </h2>
+                    <span className="text-xs font-medium text-slate-400">{workerServices.length} itens</span>
+                  </div>
+
+                  <div className="space-y-3">
                     {workerServices.length === 0 ? (
-                      <p className="text-sm text-gray-500 italic bg-white p-6 rounded-3xl border border-gray-100">Nenhum serviço específico cadastrado. Entre em contato para um orçamento personalizado.</p>
+                      <p className="text-xs text-slate-500 bg-slate-50 p-5 rounded-xl border border-slate-100 text-center">
+                        Nenhum serviço tabelado cadastrado. Solicite um orçamento personalizado ao lado.
+                      </p>
                     ) : workerServices.map(srv => (
-                      <div key={srv.id} className="bg-white border border-gray-100 p-4 rounded-3xl flex flex-col md:flex-row justify-between items-center gap-4 shadow-sm hover:shadow-md transition">
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 bg-gray-100">
-                            <img src={srv.imagem_url || 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=200&q=80'} className="w-full h-full object-cover" alt={srv.titulo} />
+                      <div
+                        key={srv.id}
+                        className="border border-slate-200/70 hover:border-slate-300 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition bg-white"
+                      >
+                        <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                          <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-slate-100 border border-slate-200/60">
+                            <img
+                              src={srv.imagem_url || 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=200&q=80'}
+                              className="w-full h-full object-cover"
+                              alt={srv.titulo}
+                            />
                           </div>
-                          <div>
-                            <h4 className="font-extrabold text-[#1F2937] text-lg">{srv.titulo}</h4>
-                            <p className="text-sm text-gray-500 mt-1 line-clamp-2">{srv.descricao}</p>
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">{srv.titulo}</h4>
+                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">{srv.descricao}</p>
                           </div>
                         </div>
-                        <div className="text-left md:text-right bg-gray-50 px-4 py-2 rounded-xl w-full md:w-auto border border-gray-100 shrink-0">
-                          <div className="text-xs text-gray-500 font-bold uppercase tracking-wide mb-0.5">A partir de</div>
-                          <div className="font-extrabold text-[#EA1D2C] text-xl">R$ {srv.preco_base}</div>
+
+                        <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 shrink-0 gap-2">
+                          <div className="text-left sm:text-right">
+                            <span className="text-[10px] text-slate-400 font-medium uppercase block">A partir de</span>
+                            <span className="font-extrabold text-slate-900 text-base">R$ {srv.preco_base}</span>
+                          </div>
+                          <button
+                            onClick={() => openRequest(srv.id)}
+                            disabled={!finalIsOnline}
+                            className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer ${
+                              finalIsOnline
+                                ? 'bg-red-50 text-[#EA1D2C] hover:bg-[#EA1D2C] hover:text-white'
+                                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                            }`}
+                          >
+                            Selecionar
+                          </button>
                         </div>
                       </div>
                     ))}
                   </div>
                 </section>
 
+                {/* Portfolio */}
                 {details.portfolio_fotos?.length > 0 && (
-                  <section>
-                    <h2 className="text-xl font-extrabold text-[#1F2937] mb-4 flex items-center gap-2"><i className="ph-fill ph-image text-[#EA1D2C]" /> Portfólio</h2>
-                    <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2">
+                  <section className="card-pro rounded-2xl p-6">
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+                      <i className="ph-fill ph-images text-[#EA1D2C] text-base" /> Galeria de Trabalhos Realizados
+                    </h2>
+                    <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
                       {details.portfolio_fotos.map((foto, i) => (
-                        <img key={i} src={foto} className="w-48 h-40 rounded-2xl object-cover shrink-0 shadow-sm border border-gray-100" alt={`portfolio ${i+1}`} />
+                        <img
+                          key={i}
+                          src={foto}
+                          className="w-44 h-36 rounded-xl object-cover shrink-0 border border-slate-200/80"
+                          alt={`Portfólio ${i + 1}`}
+                        />
                       ))}
                     </div>
                   </section>
@@ -190,35 +298,49 @@ export default function WorkerProfileDetail({ workerId, onBack }) {
             )}
 
             {activeTab === 'AVALIACOES' && (
-              <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-extrabold text-[#1F2937] flex items-center gap-2"><i className="ph-fill ph-star text-amber-400" /> Avaliações dos Clientes</h2>
+              <div className="card-pro p-6 rounded-2xl">
+                <div className="flex justify-between items-center mb-5">
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">Avaliações de Clientes Verificados</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">Opiniões reais de quem já contratou este profissional</p>
+                  </div>
                   {canReview && (
-                    <button onClick={() => setIsReviewModalOpen(true)} className="bg-[#EA1D2C] hover:bg-[#c41020] text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition">Deixar Avaliação</button>
+                    <button
+                      onClick={() => setIsReviewModalOpen(true)}
+                      className="bg-[#EA1D2C] hover:bg-[#C81422] text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer"
+                    >
+                      Avaliar Atendimento
+                    </button>
                   )}
                 </div>
+
                 {workerReviews.length === 0 ? (
-                  <p className="text-gray-500 italic p-6 bg-gray-50 rounded-2xl text-center">Nenhuma avaliação ainda.</p>
+                  <div className="text-center py-10 bg-slate-50 rounded-xl border border-slate-100">
+                    <i className="ph-fill ph-star text-3xl text-slate-300 mb-2" />
+                    <p className="text-xs text-slate-500 font-medium">Este profissional ainda não recebeu avaliações.</p>
+                  </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {workerReviews.map(r => {
                       const u = users.find(x => x.id === r.user_id);
                       return (
-                        <div key={r.id} className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
-                          <div className="flex justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <img src={u?.foto_perfil_url} className="w-10 h-10 rounded-full object-cover" alt={u?.nome} />
+                        <div key={r.id} className="bg-slate-50/70 p-4 rounded-xl border border-slate-200/60">
+                          <div className="flex justify-between items-start mb-2.5">
+                            <div className="flex items-center gap-2.5">
+                              <img src={u?.foto_perfil_url} className="w-9 h-9 rounded-full object-cover border border-slate-200" alt={u?.nome} />
                               <div>
-                                <div className="font-extrabold text-[#1F2937] text-sm">{u?.nome}</div>
-                                <div className="text-[10px] text-gray-500 font-bold">{r.data}</div>
+                                <div className="font-bold text-slate-900 text-xs">{u?.nome}</div>
+                                <div className="text-[10px] text-slate-400 font-medium">{r.data}</div>
                               </div>
                             </div>
                             <StarRating rating={r.nota} />
                           </div>
-                          <p className="text-gray-600 text-sm">{r.comentario}</p>
+                          <p className="text-slate-600 text-xs leading-relaxed">{r.comentario}</p>
                           {r.fotos?.length > 0 && (
                             <div className="flex gap-2 mt-3">
-                              {r.fotos.map((f, i) => <img key={i} src={f} className="w-16 h-16 rounded-xl object-cover border border-gray-200" alt="foto" />)}
+                              {r.fotos.map((f, i) => (
+                                <img key={i} src={f} className="w-14 h-14 rounded-lg object-cover border border-slate-200" alt="anexo" />
+                              ))}
                             </div>
                           )}
                         </div>
@@ -230,33 +352,87 @@ export default function WorkerProfileDetail({ workerId, onBack }) {
             )}
           </div>
 
-          {/* Desktop Sidebar */}
-          <div className="hidden lg:block space-y-6">
-            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl sticky top-28">
-              <h3 className="font-extrabold text-[#1F2937] text-lg mb-4">Gostou do perfil?</h3>
-              <button onClick={openRequest} disabled={!finalIsOnline} className={`w-full font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 transition transform mb-3 ${finalIsOnline ? 'bg-[#EA1D2C] text-white shadow-lg shadow-red-500/30 hover:bg-[#c41020] hover:-translate-y-1' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
-                {finalIsOnline ? 'Chamar Profissional' : 'Fora de Horário'}
+          {/* Right Column: Sticky Booking Box */}
+          <div className="hidden lg:block">
+            <div className="card-pro p-6 rounded-2xl sticky top-24">
+              <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+                <div>
+                  <span className="text-xs font-semibold text-slate-400 block">Atendimento</span>
+                  <span className="font-bold text-sm text-slate-900">{workingHoursDisplay}</span>
+                </div>
+                <span className={`w-2.5 h-2.5 rounded-full ${finalIsOnline ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+              </div>
+
+              <button
+                onClick={() => openRequest('')}
+                disabled={!finalIsOnline}
+                className={`w-full font-semibold text-sm py-3.5 rounded-xl flex items-center justify-center gap-2 transition mb-3 cursor-pointer ${
+                  finalIsOnline
+                    ? 'bg-[#EA1D2C] text-white shadow-sm shadow-red-500/20 hover:bg-[#C81422]'
+                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                }`}
+              >
+                <i className="ph-bold ph-calendar-check text-base" />
+                <span>{finalIsOnline ? 'Solicitar Orçamento' : 'Fora de Expediente'}</span>
               </button>
-              <a href={`https://wa.me/55${worker.telefone}?text=Olá ${worker.nome}, encontrei seu perfil no MãoAobra e gostaria de um serviço.`} target="_blank" rel="noreferrer" className="w-full bg-green-50 border border-green-200 text-green-700 font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-green-100 transition">
-                <i className="ph-fill ph-whatsapp-logo text-2xl" /> WhatsApp
+
+              <a
+                href={`https://wa.me/55${worker.telefone.replace(/\D/g, '')}?text=Olá ${worker.nome}, encontrei seu perfil no mãoAobra e gostaria de um orçamento.`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 font-semibold text-sm py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-100/80 transition"
+              >
+                <i className="ph-fill ph-whatsapp-logo text-lg" />
+                <span>Contato via WhatsApp</span>
               </a>
+
+              <div className="mt-5 pt-4 border-t border-slate-100 space-y-2.5 text-xs text-slate-500">
+                <div className="flex items-center gap-2">
+                  <i className="ph-fill ph-shield-check text-emerald-500 text-sm shrink-0" />
+                  <span>Negociação direta e sem taxas ocultas</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <i className="ph-fill ph-chat-centered-text text-slate-400 text-sm shrink-0" />
+                  <span>Histórico registrado no chat do pedido</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Mobile CTA */}
-      <div className="lg:hidden fixed bottom-0 w-full bg-white border-t border-gray-200 p-4 pb-6 flex gap-3 z-50 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
-        <a href={`https://wa.me/55${worker.telefone}`} target="_blank" rel="noreferrer" className="bg-green-500 text-white rounded-2xl p-4 flex items-center justify-center shadow-lg shadow-green-500/30">
-          <i className="ph-fill ph-whatsapp-logo text-2xl" />
+      {/* Mobile Sticky Action Bar */}
+      <div className="lg:hidden fixed bottom-0 w-full glass-header border-t border-slate-200/80 p-3.5 flex gap-2.5 z-50">
+        <a
+          href={`https://wa.me/55${worker.telefone.replace(/\D/g, '')}`}
+          target="_blank"
+          rel="noreferrer"
+          className="bg-emerald-600 text-white rounded-xl px-4 flex items-center justify-center shadow-xs"
+        >
+          <i className="ph-fill ph-whatsapp-logo text-xl" />
         </a>
-        <button onClick={openRequest} disabled={!finalIsOnline} className={`flex-1 font-extrabold rounded-2xl flex items-center justify-center gap-2 py-4 ${finalIsOnline ? 'bg-[#EA1D2C] text-white shadow-lg shadow-red-500/30' : 'bg-gray-200 text-gray-400'}`}>
-          {finalIsOnline ? 'Chamar Profissional' : 'Indisponível'}
+        <button
+          onClick={() => openRequest('')}
+          disabled={!finalIsOnline}
+          className={`flex-1 font-semibold text-sm rounded-xl flex items-center justify-center gap-2 py-3.5 ${
+            finalIsOnline ? 'bg-[#EA1D2C] text-white shadow-xs' : 'bg-slate-200 text-slate-400'
+          }`}
+        >
+          <i className="ph-bold ph-calendar-check text-base" />
+          <span>{finalIsOnline ? 'Solicitar Orçamento' : 'Fora de Expediente'}</span>
         </button>
       </div>
 
       {/* Modals */}
-      {isRequestModalOpen && <RequestModal workerServices={workerServices} onClose={() => setIsRequestModalOpen(false)} onSubmit={handleSolicitar} showToast={showToast} />}
+      {isRequestModalOpen && (
+        <RequestModal
+          workerServices={workerServices}
+          initialServiceId={preselectedServiceId}
+          onClose={() => setIsRequestModalOpen(false)}
+          onSubmit={handleSolicitar}
+          showToast={showToast}
+        />
+      )}
       {isReviewModalOpen && (
         <ReviewModal
           onSubmit={(nota, comentario) => {
@@ -272,61 +448,95 @@ export default function WorkerProfileDetail({ workerId, onBack }) {
   );
 }
 
-function RequestModal({ workerServices, onClose, onSubmit, showToast }) {
+function RequestModal({ workerServices, initialServiceId = '', onClose, onSubmit, showToast }) {
   const [desc, setDesc] = useState('');
-  const [selectedSrvId, setSelectedSrvId] = useState('');
+  const [selectedSrvId, setSelectedSrvId] = useState(initialServiceId);
   const [dataAgendamento, setDataAgendamento] = useState('');
   const [horaAgendamento, setHoraAgendamento] = useState('');
 
+  const inp = "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-3 focus:ring-red-500/15 focus:border-[#EA1D2C] outline-none bg-slate-50/70 focus:bg-white text-sm font-medium text-slate-900 transition";
+
   return createPortal(
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white max-w-md w-full rounded-3xl p-6 md:p-8 shadow-2xl relative animate-slide-down border border-gray-100 max-h-[90vh] overflow-y-auto">
-        <button onClick={onClose} className="absolute top-4 right-4 w-10 h-10 bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-full flex items-center justify-center transition border border-gray-200">
-          <i className="ph-bold ph-x text-xl" />
-        </button>
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-blue-500 shadow-sm border border-blue-100">
-            <i className="ph-fill ph-calendar-plus text-3xl" />
+    <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-[99999] flex items-center justify-center p-4 animate-fade-in">
+      <div className="bg-white max-w-md w-full rounded-2xl p-6 shadow-2xl relative animate-slide-down border border-slate-200/80 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between pb-4 mb-5 border-b border-slate-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-red-50 text-[#EA1D2C] flex items-center justify-center">
+              <i className="ph-fill ph-calendar-plus text-lg" />
+            </div>
+            <div>
+              <h2 className="text-base font-extrabold text-slate-900">Solicitar Serviço</h2>
+              <p className="text-xs text-slate-500">Proponha uma data e descreva sua necessidade</p>
+            </div>
           </div>
-          <h2 className="text-2xl font-extrabold text-[#1F2937]">Agendar Serviço</h2>
-          <p className="text-gray-500 text-sm mt-2 font-bold">Defina os detalhes e data do serviço</p>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-lg flex items-center justify-center transition cursor-pointer"
+          >
+            <i className="ph-bold ph-x text-sm" />
+          </button>
         </div>
         
-        <div className="mb-4">
-          <label className="block text-sm font-bold text-gray-700 mb-2">Qual serviço deseja?</label>
-          <select value={selectedSrvId} onChange={e => setSelectedSrvId(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#EA1D2C] outline-none bg-gray-50 appearance-none">
-            <option value="">Serviço Personalizado (A Combinar)</option>
-            {workerServices.map(s => <option key={s.id} value={s.id}>{s.titulo} — A partir de R$ {s.preco_base}</option>)}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="space-y-4">
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Data</label>
-            <input type="date" min={new Date().toISOString().split('T')[0]} value={dataAgendamento} onChange={e => setDataAgendamento(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#EA1D2C] outline-none bg-gray-50" />
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Serviço desejado</label>
+            <select value={selectedSrvId} onChange={e => setSelectedSrvId(e.target.value)} className={inp}>
+              <option value="">Orçamento Personalizado (Valor a combinar)</option>
+              {workerServices.map(s => (
+                <option key={s.id} value={s.id}>{s.titulo} — Base: R$ {s.preco_base}</option>
+              ))}
+            </select>
           </div>
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Horário</label>
-            <input type="time" value={horaAgendamento} onChange={e => setHoraAgendamento(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#EA1D2C] outline-none bg-gray-50" />
-          </div>
-        </div>
 
-        <div className="mb-6">
-          <label className="block text-sm font-bold text-gray-700 mb-2">Descreva o problema/detalhes:</label>
-          <textarea value={desc} onChange={e => setDesc(e.target.value)} maxLength={500} placeholder="Ex: A torneira da pia da cozinha está vazando muito..." className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#EA1D2C] outline-none bg-gray-50 resize-none h-24" />
-          <p className="text-xs text-gray-400 text-right mt-1">{desc.length}/500</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Data sugerida</label>
+              <input
+                type="date"
+                min={new Date().toISOString().split('T')[0]}
+                value={dataAgendamento}
+                onChange={e => setDataAgendamento(e.target.value)}
+                className={inp}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Horário</label>
+              <input
+                type="time"
+                value={horaAgendamento}
+                onChange={e => setHoraAgendamento(e.target.value)}
+                className={inp}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Descrição da solicitação</label>
+            <textarea
+              value={desc}
+              onChange={e => setDesc(e.target.value)}
+              maxLength={500}
+              placeholder="Descreva o problema ou serviço com detalhes para agilizar o orçamento..."
+              className={inp + ' resize-none h-24'}
+            />
+            <p className="text-[11px] text-slate-400 text-right mt-1">{desc.length}/500</p>
+          </div>
         </div>
         
-        <button onClick={() => { 
-          if (!dataAgendamento || !horaAgendamento) { showToast('Por favor, selecione data e horário.', 'error'); return; }
-          if (desc.trim().length > 10) {
-            const dataStr = `${dataAgendamento.split('-').reverse().join('/')} às ${horaAgendamento}`;
-            onSubmit(selectedSrvId || null, desc, dataStr); 
-          } else { 
-            showToast('Por favor, explique com mais detalhes (mínimo 10 caracteres).', 'warning'); 
-          } 
-        }} className="w-full bg-[#EA1D2C] hover:bg-[#c41020] text-white font-extrabold py-4 rounded-xl shadow-lg shadow-red-500/30 transition transform hover:-translate-y-1 flex items-center justify-center gap-2">
-          <i className="ph-bold ph-paper-plane-right text-lg" /> Enviar Solicitação
+        <button
+          onClick={() => {
+            if (!dataAgendamento || !horaAgendamento) { showToast('Por favor, selecione data e horário.', 'error'); return; }
+            if (desc.trim().length > 10) {
+              const dataStr = `${dataAgendamento.split('-').reverse().join('/')} às ${horaAgendamento}`;
+              onSubmit(selectedSrvId || null, desc, dataStr);
+            } else {
+              showToast('Descreva com mais detalhes (mínimo 10 caracteres).', 'warning');
+            }
+          }}
+          className="w-full mt-4 bg-[#EA1D2C] hover:bg-[#C81422] text-white font-semibold text-sm py-3 rounded-xl shadow-sm shadow-red-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
+        >
+          <i className="ph-bold ph-paper-plane-right text-sm" />
+          <span>Enviar Solicitação</span>
         </button>
       </div>
     </div>,

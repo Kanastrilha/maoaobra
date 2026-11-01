@@ -30,9 +30,7 @@ export default function WorkerServicesCRUD() {
     closeModal();
   };
 
-  const deleteService = (id) => {
-    setServiceToDelete(id);
-  };
+  const deleteService = (id) => setServiceToDelete(id);
   const confirmDelete = () => {
     if (serviceToDelete) {
       setServices(services.filter(s => s.id !== serviceToDelete));
@@ -41,36 +39,69 @@ export default function WorkerServicesCRUD() {
     }
   };
 
-  const inp = "w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#EA1D2C] focus:border-[#EA1D2C] outline-none bg-gray-50 focus:bg-white transition";
+  const inp = "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-3 focus:ring-red-500/15 focus:border-[#EA1D2C] outline-none bg-slate-50/60 focus:bg-white transition text-sm font-medium";
 
   return (
-    <div className="pb-28 md:pb-8 animate-fade-in w-full">
-      <Header title="Gerenciar Catálogo" />
-      <div className="p-4 md:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-        <button onClick={() => openModal()} className="w-full h-full min-h-[160px] bg-white text-[#EA1D2C] border-2 border-[#EA1D2C] border-dashed rounded-3xl p-6 font-extrabold flex flex-col items-center justify-center gap-3 hover:bg-red-50 transition shadow-sm group">
-          <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-            <i className="ph-bold ph-plus text-3xl" />
+    <div className="pb-24 animate-fade-in w-full">
+      <Header
+        title="Catálogo de Serviços"
+        subtitle="Cadastre seus serviços e valores base para facilitar a contratação pelos clientes"
+        rightContent={
+          <button
+            onClick={() => openModal()}
+            className="bg-[#EA1D2C] hover:bg-[#C81422] text-white font-semibold text-xs px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <i className="ph-bold ph-plus text-sm" />
+            <span>Novo Serviço</span>
+          </button>
+        }
+      />
+
+      <div className="px-4 md:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 max-w-7xl mx-auto">
+        <button
+          onClick={() => openModal()}
+          className="w-full min-h-[200px] bg-white hover:bg-red-50/40 text-slate-600 hover:text-[#EA1D2C] border-2 border-slate-200 hover:border-[#EA1D2C]/50 border-dashed rounded-2xl p-6 font-semibold text-sm flex flex-col items-center justify-center gap-2.5 transition group cursor-pointer"
+        >
+          <div className="w-12 h-12 bg-slate-100 group-hover:bg-red-50 rounded-xl flex items-center justify-center transition-colors">
+            <i className="ph-bold ph-plus text-xl" />
           </div>
-          Adicionar Novo Serviço
+          <span>Adicionar Serviço ao Catálogo</span>
         </button>
 
         {myServices.map(srv => (
-          <div key={srv.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition relative group overflow-hidden flex flex-col">
-            {srv.imagem_url && <img src={srv.imagem_url} className="w-full h-36 object-cover" alt={srv.titulo} />}
-            <div className="p-6 flex-1 flex flex-col">
-              <div className="absolute top-4 right-4 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                <button onClick={() => openModal(srv)} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-[#EA1D2C] hover:text-white transition shadow-sm">
-                  <i className="ph-bold ph-pencil-simple text-sm" />
+          <div key={srv.id} className="card-pro rounded-2xl overflow-hidden flex flex-col group">
+            <div className="relative h-36 bg-slate-100">
+              {srv.imagem_url ? (
+                <img src={srv.imagem_url} className="w-full h-full object-cover" alt={srv.titulo} />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-300">
+                  <i className="ph-fill ph-wrench text-4xl" />
+                </div>
+              )}
+              <div className="absolute top-3 right-3 flex gap-1.5">
+                <button
+                  onClick={() => openModal(srv)}
+                  className="w-8 h-8 bg-white/90 backdrop-blur-xs rounded-lg flex items-center justify-center text-slate-700 hover:bg-[#EA1D2C] hover:text-white transition shadow-xs cursor-pointer"
+                  title="Editar"
+                >
+                  <i className="ph-bold ph-pencil-simple text-xs" />
                 </button>
-                <button onClick={() => deleteService(srv.id)} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 hover:bg-red-500 hover:text-white transition shadow-sm">
-                  <i className="ph-bold ph-trash text-sm" />
+                <button
+                  onClick={() => deleteService(srv.id)}
+                  className="w-8 h-8 bg-white/90 backdrop-blur-xs rounded-lg flex items-center justify-center text-slate-700 hover:bg-red-600 hover:text-white transition shadow-xs cursor-pointer"
+                  title="Excluir"
+                >
+                  <i className="ph-bold ph-trash text-xs" />
                 </button>
               </div>
-              <h3 className="font-extrabold text-[#1F2937] text-lg mb-2 pr-16">{srv.titulo}</h3>
-              <p className="text-sm text-gray-500 mb-6 bg-gray-50 p-3 rounded-xl border border-gray-100 flex-1">{srv.descricao}</p>
-              <div className="mt-auto">
-                <div className="text-xs font-bold text-gray-400 uppercase mb-1">Preço Base</div>
-                <div className="font-extrabold text-[#EA1D2C] text-2xl">R$ {srv.preco_base}</div>
+            </div>
+
+            <div className="p-5 flex-1 flex flex-col">
+              <h3 className="font-bold text-slate-900 text-base mb-1.5">{srv.titulo}</h3>
+              <p className="text-xs text-slate-500 leading-relaxed mb-4 flex-1 line-clamp-3">{srv.descricao}</p>
+              <div className="pt-3 border-t border-slate-100 flex items-baseline justify-between">
+                <span className="text-[10px] font-semibold text-slate-400 uppercase">Preço Base</span>
+                <span className="font-extrabold text-slate-900 text-lg">R$ {srv.preco_base}</span>
               </div>
             </div>
           </div>
@@ -78,50 +109,65 @@ export default function WorkerServicesCRUD() {
       </div>
 
       {modalData && createPortal(
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slide-down">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h3 className="font-extrabold text-lg">{services.find(s => s.id === modalData.id) ? 'Editar Serviço' : 'Novo Serviço'}</h3>
-              <button onClick={closeModal} className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-[#1F2937] hover:bg-red-50 hover:text-[#EA1D2C] transition shadow-sm border border-gray-200">
-                <i className="ph-bold ph-x" />
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-[99999] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200/80 flex flex-col overflow-hidden animate-slide-down">
+            <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+              <h3 className="font-extrabold text-base text-slate-900">
+                {services.find(s => s.id === modalData.id) ? 'Editar Serviço' : 'Novo Serviço'}
+              </h3>
+              <button
+                onClick={closeModal}
+                className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-200 transition cursor-pointer"
+              >
+                <i className="ph-bold ph-x text-sm" />
               </button>
             </div>
-            <form onSubmit={saveService} className="p-6 space-y-4">
+            <form onSubmit={saveService} className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Nome do Serviço</label>
-                <input required name="titulo" defaultValue={modalData.titulo} type="text" className={inp} placeholder="Ex: Instalação de Chuveiro" />
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Título do Serviço</label>
+                <input required name="titulo" defaultValue={modalData.titulo} type="text" className={inp} placeholder="Ex: Instalação de Chuveiro Elétrico" />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Descrição</label>
-                <textarea required name="descricao" defaultValue={modalData.descricao} rows="3" className={inp + ' resize-none'} placeholder="Detalhes do que está incluso..." />
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Descrição detalhada</label>
+                <textarea required name="descricao" defaultValue={modalData.descricao} rows="3" className={inp + ' resize-none'} placeholder="Explique o que está incluso no serviço..." />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Preço Base (R$)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Valor Base (R$)</label>
                   <input required name="preco_base" defaultValue={modalData.preco_base} type="number" min="1" step="0.01" className={inp} placeholder="100" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Imagem do Serviço</label>
-                  <div className="flex gap-4 items-center">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Foto ilustrativa</label>
+                  <div className="flex gap-3 items-center">
                     {modalData.imagem_url && (
                       <div className="relative">
-                        <img src={modalData.imagem_url} className="w-16 h-16 rounded-xl object-cover border border-gray-200" alt="preview" />
-                        <button type="button" onClick={() => setModalData({...modalData, imagem_url: ''})} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-md border-2 border-white"><i className="ph-bold ph-x" /></button>
+                        <img src={modalData.imagem_url} className="w-11 h-11 rounded-xl object-cover border border-slate-200" alt="preview" />
+                        <button
+                          type="button"
+                          onClick={() => setModalData({ ...modalData, imagem_url: '' })}
+                          className="absolute -top-1.5 -right-1.5 bg-red-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px] border border-white"
+                        >
+                          <i className="ph-bold ph-x" />
+                        </button>
                       </div>
                     )}
-                    <ImageUploader 
-                       pathFolder={`services/${currentUser.id}`}
-                       onUploadSuccess={(url) => setModalData({...modalData, imagem_url: url})}
-                       onError={(err) => showToast(err, 'error')}
+                    <ImageUploader
+                      pathFolder={`services/${currentUser.id}`}
+                      onUploadSuccess={(url) => setModalData({ ...modalData, imagem_url: url })}
+                      onError={(err) => showToast(err, 'error')}
                     >
-                      <button type="button" className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center text-[#EA1D2C] hover:bg-red-50 transition border border-red-100 border-dashed">
-                        <i className="ph-bold ph-upload-simple text-xl" />
-                      </button>
+                      <div className="h-11 px-3 rounded-xl bg-slate-50 flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#EA1D2C] hover:bg-red-50 transition border border-slate-200 border-dashed">
+                        <i className="ph-bold ph-upload-simple text-sm" />
+                        <span>Enviar</span>
+                      </div>
                     </ImageUploader>
                   </div>
                 </div>
               </div>
-              <button type="submit" className="w-full bg-[#EA1D2C] hover:bg-[#c41020] text-white font-extrabold py-4 rounded-xl shadow-lg shadow-red-500/30 transition transform hover:-translate-y-1 mt-2">
+              <button
+                type="submit"
+                className="w-full bg-[#EA1D2C] hover:bg-[#C81422] text-white font-semibold text-sm py-3 rounded-xl shadow-xs transition mt-2 cursor-pointer"
+              >
                 Salvar Serviço
               </button>
             </form>
@@ -131,16 +177,20 @@ export default function WorkerServicesCRUD() {
       )}
 
       {serviceToDelete && createPortal(
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white max-w-sm w-full rounded-3xl shadow-2xl p-6 text-center animate-slide-down border border-gray-100">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <i className="ph-fill ph-trash text-3xl text-[#EA1D2C]" />
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-[99999] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white max-w-sm w-full rounded-2xl shadow-2xl p-6 text-center animate-slide-down border border-slate-200/80">
+            <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-red-600">
+              <i className="ph-fill ph-trash text-2xl" />
             </div>
-            <h3 className="text-xl font-extrabold text-[#1F2937] mb-2">Excluir Serviço?</h3>
-            <p className="text-sm text-gray-500 mb-6">Você tem certeza? Esta ação não pode ser desfeita e os clientes não poderão mais solicitar este serviço.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setServiceToDelete(null)} className="flex-1 py-3 bg-gray-100 text-gray-600 font-extrabold rounded-xl hover:bg-gray-200 transition">Cancelar</button>
-              <button onClick={confirmDelete} className="flex-1 py-3 bg-[#EA1D2C] text-white font-extrabold rounded-xl hover:bg-[#c41020] shadow-lg shadow-red-500/30 transition">Excluir</button>
+            <h3 className="text-base font-extrabold text-slate-900 mb-1">Remover serviço?</h3>
+            <p className="text-xs text-slate-500 mb-5">Este item deixará de ser exibido em seu perfil público.</p>
+            <div className="flex gap-2.5">
+              <button onClick={() => setServiceToDelete(null)} className="flex-1 py-2.5 bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl hover:bg-slate-200 transition cursor-pointer">
+                Cancelar
+              </button>
+              <button onClick={confirmDelete} className="flex-1 py-2.5 bg-red-600 text-white font-semibold text-xs rounded-xl hover:bg-red-700 transition cursor-pointer">
+                Confirmar Exclusão
+              </button>
             </div>
           </div>
         </div>,
