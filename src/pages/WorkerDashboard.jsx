@@ -1,5 +1,5 @@
 // src/pages/WorkerDashboard.jsx
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useAppStore } from '../store';
 import OrderChatModal from '../components/modals/OrderChatModal';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -13,7 +13,7 @@ export default function WorkerDashboard() {
   const concluidos = myOrders.filter(o => o.status === 'CONCLUIDO');
   const receitaTotal = concluidos.reduce((acc, o) => acc + (Number(o.preco_final) || 0), 0);
 
-  const chartData = useMemo(() => {
+  const chartData = (() => {
     if (concluidos.length === 0) {
       return [
         { name: 'Semana 1', ganhos: 0 },
@@ -28,7 +28,7 @@ export default function WorkerDashboard() {
       { name: 'Semana 3', ganhos: 0 },
       { name: 'Semana Atual', ganhos: receitaTotal },
     ];
-  }, [concluidos, receitaTotal]);
+  })();
 
   return (
     <div className="pb-24 animate-fade-in w-full">

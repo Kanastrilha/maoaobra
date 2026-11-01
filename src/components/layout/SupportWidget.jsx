@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../../store';
 
 export default function SupportWidget() {
-  const { currentUser, currentView, supportTickets, setSupportTickets, showToast } = useAppStore();
+  const { currentUser, currentView, supportTickets, sendTicketMessage, showToast } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
   const chatRef = useRef(null);
@@ -17,16 +17,10 @@ export default function SupportWidget() {
   const adminViews = ['ADMIN_DASH','ADMIN_CLIENTS','ADMIN_WORKERS','ADMIN_APPROVALS','ADMIN_SUPPORT','ADMIN_CHATS'];
   if (adminViews.includes(currentView)) return null;
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!message.trim()) return;
     if (!currentUser) { showToast('Faça login para usar o suporte.', 'warning'); return; }
-    const newMsg = { sender: 'USER', text: message, time: new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }) };
-    if (myTicket) {
-      setSupportTickets(supportTickets.map(t => t.id === myTicket.id ? { ...t, messages: [...t.messages, newMsg] } : t));
-    } else {
-      setSupportTickets([...supportTickets, { id: 't' + Date.now(), user_id: currentUser.id, status: 'OPEN', messages: [newMsg] }]);
-    }
-    setMessage('');
+    if (await sendTicketMessage(myTicket?.id, message)) setMessage('');
   };
 
   return (

@@ -1,29 +1,44 @@
 {
-  "name": "app",
+  "name": "maoaobra-copia-local",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://Kanastrilha.github.io/maoaobra",
+  "workspaces": [
+    "functions"
+  ],
+  "overrides": {
+    "@firebase/firestore": {
+      "@grpc/grpc-js": "1.14.7"
+    }
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "vite",
+    "dev:backend": "vite --mode emulator",
+    "emulators": "node scripts/emulators.js start",
+    "test:backend": "node scripts/emulators.js test",
+    "seed:emulators": "node scripts/seed-emulators.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "test": "node --test tests/*.test.js",
+    "check": "npm run lint && npm test && npm run build",
+    "audit:security": "npm audit --audit-level=high"
   },
   "dependencies": {
-    "firebase": "^12.13.0",
+    "firebase": "^13.1.0",
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-hot-toast": "^2.6.0",
-    "react-router-dom": "^7.15.1",
     "recharts": "^3.8.1",
     "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@tailwindcss/vite": "^4.3.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -31,7 +46,7 @@
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
-    "gh-pages": "^6.3.0",
+    "firebase-tools": "^15.34.2",
     "globals": "^17.6.0",
     "tailwindcss": "^4.3.0",
     "vite": "^8.0.12"

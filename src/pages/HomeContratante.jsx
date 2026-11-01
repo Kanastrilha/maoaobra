@@ -1,7 +1,6 @@
 // src/pages/HomeContratante.jsx
 import { useState } from 'react';
 import { useAppStore, getEstimatedDistance, isWorkerOnline } from '../store';
-import StarRating from '../components/ui/StarRating';
 
 const CATEGORIES = ['Todos','Eletricista','Encanador','Diarista','Pintor','Montador','TI','Freteiro'];
 const CAT_ICONS  = {
@@ -57,7 +56,7 @@ export default function HomeContratante({ onSelectWorker }) {
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-50 border border-red-100 text-[#EA1D2C] text-xs font-semibold mb-4">
               <i className="ph-fill ph-seal-check text-sm" />
-              <span>Especialistas verificados na sua região</span>
+              <span>Encontre profissionais em Cáceres, MT</span>
             </div>
 
             <h1 className="text-2xl sm:text-4xl md:text-[2.65rem] font-extrabold text-slate-900 tracking-tight leading-[1.15]">
@@ -72,10 +71,11 @@ export default function HomeContratante({ onSelectWorker }) {
               <div className="relative flex items-center bg-white rounded-2xl border border-slate-200/90 shadow-[0_8px_30px_rgb(15,23,42,0.06)] focus-within:border-[#EA1D2C] focus-within:ring-4 focus-within:ring-red-500/10 transition-all p-1.5">
                 <i className="ph-bold ph-magnifying-glass text-slate-400 text-lg ml-3.5 mr-2.5 shrink-0" />
                 <input
+                  aria-label="Buscar serviço ou profissional"
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Qual serviço ou profissional você procura hoje?"
+                  placeholder="Qual serviço ou profissional você procura?"
                   className="w-full py-2.5 pr-3 bg-transparent text-slate-900 placeholder:text-slate-400 font-medium text-sm md:text-base outline-none"
                 />
                 {searchQuery && (
@@ -130,12 +130,11 @@ export default function HomeContratante({ onSelectWorker }) {
               {searchQuery
                 ? `Resultados para "${searchQuery}"`
                 : selectedCategory === 'Todos'
-                ? 'Profissionais Recomendados'
+                ? 'Profissionais em Cáceres, MT'
                 : `Especialistas em ${selectedCategory}`}
             </h2>
             <p className="text-xs text-slate-500 font-medium mt-0.5">
               {filteredWorkers.length} {filteredWorkers.length === 1 ? 'profissional disponível' : 'profissionais encontrados'}
-              {myDetails ? ' • Ordenados por proximidade' : ''}
             </p>
           </div>
 
@@ -176,7 +175,7 @@ export default function HomeContratante({ onSelectWorker }) {
               const workerReviews = reviews.filter(r => r.worker_id === w.id && !r.isWorkerReview);
               const dynamicRating = workerReviews.length > 0
                 ? (workerReviews.reduce((a, b) => a + b.nota, 0) / workerReviews.length).toFixed(1)
-                : (details?.nota_media || 0);
+                : 'Novo';
               const workerServices = services.filter(s => s.worker_id === w.id);
               const minPrice = workerServices.length > 0
                 ? Math.min(...workerServices.map(s => Number(s.preco_base) || 0))
@@ -185,10 +184,11 @@ export default function HomeContratante({ onSelectWorker }) {
               const dist = myDetails && details ? getEstimatedDistance(myDetails, details) : null;
 
               return (
-                <div
+                <button
+                  type="button"
                   key={w.id}
                   onClick={() => onSelectWorker(w.id)}
-                  className="card-pro rounded-2xl p-5 flex flex-col justify-between cursor-pointer hover:border-slate-300 hover:shadow-md transition-all duration-200 group"
+                  className="card-pro text-left w-full rounded-2xl p-5 flex flex-col justify-between cursor-pointer hover:border-slate-300 hover:shadow-md transition-all duration-200 group"
                 >
                   <div>
                     {/* Top Row: Avatar + Header Info */}
@@ -225,7 +225,7 @@ export default function HomeContratante({ onSelectWorker }) {
 
                         <h3 className="font-bold text-base text-slate-900 group-hover:text-[#EA1D2C] transition-colors truncate mt-1.5 flex items-center gap-1.5">
                           <span className="truncate">{w.nome}</span>
-                          <i className="ph-fill ph-seal-check text-sky-500 text-sm shrink-0" title="Perfil Verificado" />
+                          <i className="ph-fill ph-seal-check text-sky-500 text-sm shrink-0" title="Perfil aprovado na demonstração" />
                         </h3>
 
                         <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 font-medium">
@@ -268,7 +268,7 @@ export default function HomeContratante({ onSelectWorker }) {
                       <i className="ph-bold ph-caret-right text-xs" />
                     </span>
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>

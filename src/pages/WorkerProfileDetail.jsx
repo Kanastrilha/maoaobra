@@ -1,12 +1,13 @@
 // src/pages/WorkerProfileDetail.jsx
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useAppStore, getEstimatedDistance } from '../store';
+import { useAppStore, getEstimatedDistance, isWorkerOnline } from '../store';
+import { getWorkingSchedule } from '../data/availability';
 import StarRating from '../components/ui/StarRating';
 import ReviewModal from '../components/modals/ReviewModal';
 
 export default function WorkerProfileDetail({ workerId, onBack }) {
-  const { users, workerDetails, services, reviews, currentUser, setCurrentView, showToast, orders, setOrders, setReviews } = useAppStore();
+  const { users, workerDetails, services, reviews, currentUser, setCurrentView, showToast, orders, createOrder, submitReview } = useAppStore();
   const worker = users.find(u => u.id === workerId);
   const details = workerDetails.find(d => d.user_id === workerId);
   const workerServices = services.filter(s => s.worker_id === workerId);
@@ -18,62 +19,29 @@ export default function WorkerProfileDetail({ workerId, onBack }) {
 
   const dynamicRating = workerReviews.length > 0
     ? (workerReviews.reduce((a, b) => a + b.nota, 0) / workerReviews.length).toFixed(1)
-    : (details?.nota_media || 0);
+    : 'Novo';
 
   const userFinishedOrders = currentUser ? orders.filter(o => o.contratante_id === currentUser.id && o.worker_id === workerId && o.status === 'CONCLUIDO') : [];
   const canReview = userFinishedOrders.length > 0 && workerReviews.filter(r => r.user_id === currentUser?.id).length < userFinishedOrders.length;
-  
+
   const myDetails = currentUser ? useAppStore.getState().contratanteDetails?.find(d => d.user_id === currentUser.id) || workerDetails.find(d => d.user_id === currentUser.id) : null;
   const distance = getEstimatedDistance(myDetails, details);
 
-  const horaInicio = details?.horaInicio || '08:00';
-  const horaFim = details?.horaFim || '18:00';
-  
-  let isWithinHours = true;
-  try {
-    const agora = new Date();
-    const horaAtual = agora.getHours() * 60 + agora.getMinutes();
-    const [hI, mI] = horaInicio.split(':').map(Number);
-    const inicioMinutos = hI * 60 + mI;
-    const [hF, mF] = horaFim.split(':').map(Number);
-    let fimMinutos = hF * 60 + mF;
-    if (fimMinutos < inicioMinutos) fimMinutos += 24 * 60;
-    let adjustedAtual = horaAtual;
-    if (horaAtual < inicioMinutos && fimMinutos > 24 * 60) adjustedAtual += 24 * 60;
-    
-    if (adjustedAtual < inicioMinutos || adjustedAtual > fimMinutos) isWithinHours = false;
-  } catch(e) {}
-  
-  const finalIsOnline = details?.isOnline && isWithinHours;
-  const diasTrabalho = details?.diasTrabalho || details?.workingHours?.split(',')[0] || 'Seg-Sex';
-  const workingHoursDisplay = `${diasTrabalho}, ${horaInicio} às ${horaFim}`;
+  const schedule = getWorkingSchedule(details);
+  const finalIsOnline = isWorkerOnline(details);
+  const workingHoursDisplay = `${schedule.days}, ${schedule.start} às ${schedule.end}`;
 
-  if (!worker || !details) return null;
+  if (!worker || !details) return <div className="p-8 text-center"><h1 className="font-bold">Profissional não encontrado</h1><button onClick={onBack} className="mt-4 text-red-600">Voltar aos resultados</button></div>;
 
-  const handleSolicitar = (servicoId, descricaoMsg, agendamento) => {
-    const srv = services.find(s => s.id === servicoId);
-    const activeOrds = orders.filter(o => o.contratante_id === currentUser.id && o.worker_id === workerId && ['PENDENTE','EM_ANDAMENTO'].includes(o.status));
-    if (activeOrds.length >= 2) { showToast('Você já possui solicitações em andamento com este profissional.', 'error'); return; }
-    const newOrder = {
-      id: 'o' + Date.now(),
-      contratante_id: currentUser.id,
-      worker_id: workerId,
-      servico_id: servicoId || null,
-      status: 'PENDENTE',
-      data: new Date().toLocaleDateString('pt-BR'),
-      agendamento: agendamento,
-      preco_final: srv ? srv.preco_base : 0,
-      chat_history: [{ sender: currentUser.id, text: `Olá! Gostaria de solicitar o serviço "${srv?.titulo || 'Personalizado'}".\n\n📅 Data sugerida: ${agendamento}\n\nDetalhes: ${descricaoMsg}`, time: new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }) }]
-    };
-    setOrders([...orders, newOrder]);
-    setIsRequestModalOpen(false);
-    showToast('Solicitação enviada com sucesso e agendamento proposto!');
+  const handleSolicitar = async (servicoId, descricaoMsg, agendamento) => {
+    const service = services.find(s => s.id === servicoId);
+    if (await createOrder({ worker_id: workerId, servico_id: servicoId || null, agendamento,
+      text: `Olá! Gostaria de solicitar o serviço "${service?.titulo || 'Personalizado'}".\n\nData sugerida: ${agendamento}\n\nDetalhes: ${descricaoMsg}` })) setIsRequestModalOpen(false);
   };
 
   const openRequest = (srvId = '') => {
     if (!currentUser) { showToast('Por favor, faça login para solicitar um serviço.', 'warning'); setCurrentView('LOGIN'); return; }
-    if (currentUser.role === 'TRABALHADOR') { showToast('Apenas contas de cliente podem solicitar serviços.', 'error'); return; }
-    if (!finalIsOnline) { showToast('Profissional fora do horário de atendimento.', 'warning'); return; }
+    if (currentUser.role !== 'CONTRATANTE') { showToast('Apenas contas de cliente podem solicitar serviços.', 'error'); return; }
     setPreselectedServiceId(srvId);
     setIsRequestModalOpen(true);
   };
@@ -124,7 +92,7 @@ export default function WorkerProfileDetail({ workerId, onBack }) {
                       {details.categorias?.join(' • ')}
                     </span>
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md">
-                      <i className="ph-fill ph-seal-check text-sky-500" /> Identidade Verificada
+                      <i className="ph-fill ph-seal-check text-sky-500" /> Perfil aprovado na demonstração
                     </span>
                   </div>
                   <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 mt-1.5 tracking-tight">
@@ -261,11 +229,11 @@ export default function WorkerProfileDetail({ workerId, onBack }) {
                           </div>
                           <button
                             onClick={() => openRequest(srv.id)}
-                            disabled={!finalIsOnline}
+
                             className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer ${
                               finalIsOnline
                                 ? 'bg-red-50 text-[#EA1D2C] hover:bg-[#EA1D2C] hover:text-white'
-                                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                : 'bg-[#EA1D2C] text-white hover:bg-[#C81422]'
                             }`}
                           >
                             Selecionar
@@ -365,26 +333,25 @@ export default function WorkerProfileDetail({ workerId, onBack }) {
 
               <button
                 onClick={() => openRequest('')}
-                disabled={!finalIsOnline}
+
                 className={`w-full font-semibold text-sm py-3.5 rounded-xl flex items-center justify-center gap-2 transition mb-3 cursor-pointer ${
                   finalIsOnline
                     ? 'bg-[#EA1D2C] text-white shadow-sm shadow-red-500/20 hover:bg-[#C81422]'
-                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                    : 'bg-[#EA1D2C] text-white hover:bg-[#C81422]'
                 }`}
               >
                 <i className="ph-bold ph-calendar-check text-base" />
-                <span>{finalIsOnline ? 'Solicitar Orçamento' : 'Fora de Expediente'}</span>
+                <span>{finalIsOnline ? 'Solicitar Orçamento' : 'Solicitar para depois'}</span>
               </button>
 
-              <a
-                href={`https://wa.me/55${worker.telefone.replace(/\D/g, '')}?text=Olá ${worker.nome}, encontrei seu perfil no mãoAobra e gostaria de um orçamento.`}
-                target="_blank"
-                rel="noreferrer"
+              <button
+          type="button"
+          onClick={() => showToast('O contato por WhatsApp está desativado nesta demonstração.', 'info')}
                 className="w-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 font-semibold text-sm py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-100/80 transition"
               >
                 <i className="ph-fill ph-whatsapp-logo text-lg" />
                 <span>Contato via WhatsApp</span>
-              </a>
+              </button>
 
               <div className="mt-5 pt-4 border-t border-slate-100 space-y-2.5 text-xs text-slate-500">
                 <div className="flex items-center gap-2">
@@ -403,23 +370,22 @@ export default function WorkerProfileDetail({ workerId, onBack }) {
 
       {/* Mobile Sticky Action Bar */}
       <div className="lg:hidden fixed bottom-0 w-full glass-header border-t border-slate-200/80 p-3.5 flex gap-2.5 z-50">
-        <a
-          href={`https://wa.me/55${worker.telefone.replace(/\D/g, '')}`}
-          target="_blank"
-          rel="noreferrer"
+        <button
+          type="button"
+          onClick={() => showToast('O contato por WhatsApp está desativado nesta demonstração.', 'info')}
           className="bg-emerald-600 text-white rounded-xl px-4 flex items-center justify-center shadow-xs"
         >
           <i className="ph-fill ph-whatsapp-logo text-xl" />
-        </a>
+        </button>
         <button
           onClick={() => openRequest('')}
-          disabled={!finalIsOnline}
+
           className={`flex-1 font-semibold text-sm rounded-xl flex items-center justify-center gap-2 py-3.5 ${
-            finalIsOnline ? 'bg-[#EA1D2C] text-white shadow-xs' : 'bg-slate-200 text-slate-400'
+            finalIsOnline ? 'bg-[#EA1D2C] text-white shadow-xs' : 'bg-[#EA1D2C] text-white'
           }`}
         >
           <i className="ph-bold ph-calendar-check text-base" />
-          <span>{finalIsOnline ? 'Solicitar Orçamento' : 'Fora de Expediente'}</span>
+          <span>{finalIsOnline ? 'Solicitar Orçamento' : 'Solicitar para depois'}</span>
         </button>
       </div>
 
@@ -435,10 +401,9 @@ export default function WorkerProfileDetail({ workerId, onBack }) {
       )}
       {isReviewModalOpen && (
         <ReviewModal
-          onSubmit={(nota, comentario) => {
-            setReviews([...reviews, { id: 'r' + Date.now(), worker_id: workerId, user_id: currentUser.id, nota, comentario, fotos: [], data: new Date().toLocaleDateString('pt-BR'), isWorkerReview: false }]);
-            setIsReviewModalOpen(false);
-            showToast('Avaliação enviada!');
+          onSubmit={async (nota, comentario) => {
+            const order = userFinishedOrders.find(o => !workerReviews.some(r => r.order_id === o.id && r.user_id === currentUser.id));
+            if (order && await submitReview({ order_id: order.id, nota, comentario })) setIsReviewModalOpen(false);
           }}
           onClose={() => setIsReviewModalOpen(false)}
           isWorkerReview={false}
@@ -453,6 +418,7 @@ function RequestModal({ workerServices, initialServiceId = '', onClose, onSubmit
   const [selectedSrvId, setSelectedSrvId] = useState(initialServiceId);
   const [dataAgendamento, setDataAgendamento] = useState('');
   const [horaAgendamento, setHoraAgendamento] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const inp = "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-3 focus:ring-red-500/15 focus:border-[#EA1D2C] outline-none bg-slate-50/70 focus:bg-white text-sm font-medium text-slate-900 transition";
 
@@ -476,7 +442,7 @@ function RequestModal({ workerServices, initialServiceId = '', onClose, onSubmit
             <i className="ph-bold ph-x text-sm" />
           </button>
         </div>
-        
+
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">Serviço desejado</label>
@@ -522,13 +488,16 @@ function RequestModal({ workerServices, initialServiceId = '', onClose, onSubmit
             <p className="text-[11px] text-slate-400 text-right mt-1">{desc.length}/500</p>
           </div>
         </div>
-        
+
         <button
-          onClick={() => {
+          disabled={submitting}
+          onClick={async () => {
+            if (submitting) return;
             if (!dataAgendamento || !horaAgendamento) { showToast('Por favor, selecione data e horário.', 'error'); return; }
             if (desc.trim().length > 10) {
               const dataStr = `${dataAgendamento.split('-').reverse().join('/')} às ${horaAgendamento}`;
-              onSubmit(selectedSrvId || null, desc, dataStr);
+              setSubmitting(true);
+              try { await onSubmit(selectedSrvId || null, desc, dataStr); } finally { setSubmitting(false); }
             } else {
               showToast('Descreva com mais detalhes (mínimo 10 caracteres).', 'warning');
             }
@@ -536,7 +505,7 @@ function RequestModal({ workerServices, initialServiceId = '', onClose, onSubmit
           className="w-full mt-4 bg-[#EA1D2C] hover:bg-[#C81422] text-white font-semibold text-sm py-3 rounded-xl shadow-sm shadow-red-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
         >
           <i className="ph-bold ph-paper-plane-right text-sm" />
-          <span>Enviar Solicitação</span>
+          <span>{submitting ? 'Enviando...' : 'Enviar Solicitação'}</span>
         </button>
       </div>
     </div>,

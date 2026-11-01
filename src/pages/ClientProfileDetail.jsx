@@ -6,12 +6,12 @@ import ReviewModal from '../components/modals/ReviewModal';
 import StarRating from '../components/ui/StarRating';
 
 export default function ClientProfileDetail({ clientId, onBack }) {
-  const { users, contratanteDetails, reviews, orders, currentUser, setReviews, showToast } = useAppStore();
+  const { users, contratanteDetails, reviews, orders, currentUser, submitReview } = useAppStore();
   const client = users.find(u => u.id === clientId);
   const details = contratanteDetails.find(d => d.user_id === clientId);
   const [showReviewModal, setShowReviewModal] = useState(false);
 
-  if (!client) return null;
+  if (!client || !currentUser) return null;
 
   const clientReviews = reviews.filter(r => r.user_id === clientId && r.isWorkerReview === true);
   const notaMedia = clientReviews.length > 0 ? (clientReviews.reduce((a, b) => a + b.nota, 0) / clientReviews.length).toFixed(1) : 0;
@@ -82,10 +82,9 @@ export default function ClientProfileDetail({ clientId, onBack }) {
       {showReviewModal && (
         <ReviewModal
           isWorkerReview
-          onSubmit={(nota, comentario) => {
-            setReviews([...reviews, { id:'r'+Date.now(), worker_id:currentUser.id, user_id:clientId, nota, comentario, fotos:[], data:new Date().toLocaleDateString('pt-BR'), isWorkerReview:true }]);
-            setShowReviewModal(false);
-            showToast('Avaliação enviada!');
+          onSubmit={async (nota, comentario) => {
+            const order = myFinishedOrders.find(o => !clientReviews.some(r => r.order_id === o.id && r.worker_id === currentUser.id));
+            if (order && await submitReview({ order_id: order.id, nota, comentario })) setShowReviewModal(false);
           }}
           onClose={() => setShowReviewModal(false)}
         />

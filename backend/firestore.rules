@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function owner(uid) { return signedIn() && request.auth.uid == uid; }
+    function approved() {
+      return signedIn() && request.auth.token.email_verified == true
+        && get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data.status == 'APPROVED';
+    }
+    function admin() {
+      return approved() && request.auth.token.admin == true
+        && get(/databases/$(database)/documents/accounts/$(request.auth.uid)).data.role == 'ADMIN';
+    }
+    function participant(orderId) {
+      return approved() && request.auth.uid in get(/databases/$(database)/documents/orders/$(orderId)).data.participantIds;
+    }
+    match /publicProfiles/{uid} {
+      allow read: if resource.data.status == 'APPROVED' && resource.data.role == 'TRABALHADOR';
+    }
+    match /services/{id} { allow read: if resource.data.published == true; }
+    match /accounts/{uid} { allow read: if owner(uid) || admin(); }
+    match /privateProfiles/{uid} { allow read: if owner(uid) || admin(); }
+    match /orders/{id} {
+      allow read: if approved() && request.auth.uid in resource.data.participantIds;
+      match /messages/{messageId} { allow read: if participant(id); }
+    }
+    match /reviews/{id} { allow read: if approved() && request.auth.uid in resource.data.participantIds; }
+    match /publicReviews/{id} { allow read: if resource.data.published == true; }
+    match /supportTickets/{id} {
+      allow read: if approved() && (owner(resource.data.user_id) || admin());
+      match /messages/{messageId} {
+        allow read: if approved() && (owner(get(/databases/$(database)/documents/supportTickets/$(id)).data.user_id) || admin());
+      }
+    }
+    match /meta/public { allow read: if true; }
+    match /meta/admin { allow read: if admin(); }
+    match /sync/{uid} { allow read: if owner(uid); }
+    match /auditLogs/{id} { allow read: if admin(); }
+    // Toda escrita passa pelas funções: o Admin SDK exige autorização própria.
+    // Coleções antigas, limites de requisições e recibos nunca são públicos.
+    match /{document=**} { allow write, read: if false; }
+  }
+}

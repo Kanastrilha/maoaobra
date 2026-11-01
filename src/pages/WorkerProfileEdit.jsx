@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
 import { maskCPF, formatPhone } from '../utils/security';
+import { getWorkingSchedule } from '../data/availability';
 import Header from '../components/ui/Header';
 import ImageUploader from '../components/ui/ImageUploader';
 
 export default function WorkerProfileEdit() {
-  const { currentUser, workerDetails, logout, deleteMyAccount, reviews, users, setWorkerDetails, showToast, setUsers, setCurrentUser } = useAppStore();
+  const { currentUser, workerDetails, logout, deleteMyAccount, reviews, users, setWorkerDetails, showToast, setUsers } = useAppStore();
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [tempBio, setTempBio] = useState('');
 
@@ -13,7 +14,7 @@ export default function WorkerProfileEdit() {
   const myReviews = reviews.filter(r => r.worker_id === currentUser.id && !r.isWorkerReview);
   const dynamicRating = myReviews.length > 0
     ? (myReviews.reduce((a, b) => a + b.nota, 0) / myReviews.length).toFixed(1)
-    : (details?.nota_media > 0 ? details.nota_media : 'Novo');
+    : 'Novo';
 
   const inp = "w-full px-3.5 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 outline-none focus:border-[#EA1D2C] bg-white font-medium text-slate-800";
 
@@ -35,7 +36,7 @@ export default function WorkerProfileEdit() {
             <ImageUploader
               pathFolder={`users/${currentUser.id}/banner`}
               className="absolute top-3.5 right-3.5"
-              onUploadSuccess={(url) => { setWorkerDetails(workerDetails.map(d => d.user_id === currentUser.id ? { ...d, banner_url: url } : d)); showToast('Banner atualizado!'); }}
+              onUploadSuccess={async (url) => { if (!await setWorkerDetails(items => items.map(d => d.user_id === currentUser.id ? { ...d, banner_url: url } : d))) return; showToast('Banner atualizado!'); }}
               onError={(err) => showToast(err, 'error')}
             >
               <div role="button" className="bg-white/15 hover:bg-white/25 text-white px-3 py-1.5 rounded-xl backdrop-blur-md transition border border-white/20 text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
@@ -54,7 +55,7 @@ export default function WorkerProfileEdit() {
               <ImageUploader
                 pathFolder={`users/${currentUser.id}/avatar`}
                 className="absolute -bottom-1.5 -right-1.5"
-                onUploadSuccess={(url) => { setUsers(users.map(u => u.id === currentUser.id ? { ...u, foto_perfil_url: url } : u)); setCurrentUser({ ...currentUser, foto_perfil_url: url }); showToast('Foto atualizada!'); }}
+                onUploadSuccess={async (url) => { if (!await setUsers(items => items.map(u => u.id === currentUser.id ? { ...u, foto_perfil_url: url } : u))) return; showToast('Foto atualizada!'); }}
                 onError={(err) => showToast(err, 'error')}
               >
                 <div role="button" className="bg-[#EA1D2C] text-white w-8 h-8 flex items-center justify-center rounded-xl shadow-xs hover:bg-[#C81422] transition border-2 border-white cursor-pointer">
@@ -95,8 +96,8 @@ export default function WorkerProfileEdit() {
                     <div className="text-[11px] text-slate-500">Habilita chamadas dentro do horário comercial</div>
                   </div>
                   <button
-                    onClick={() => {
-                      setWorkerDetails(workerDetails.map(w => w.user_id === currentUser.id ? { ...w, isOnline: !w.isOnline } : w));
+                    onClick={async () => {
+                      if (!await setWorkerDetails(items => items.map(w => w.user_id === currentUser.id ? { ...w, isOnline: !w.isOnline } : w))) return;
                       showToast(details?.isOnline ? 'Você está offline.' : 'Você está online!', details?.isOnline ? 'warning' : 'success');
                     }}
                     className={`w-12 h-7 rounded-full transition-colors relative cursor-pointer ${details?.isOnline ? 'bg-emerald-500' : 'bg-slate-300'}`}
@@ -110,15 +111,15 @@ export default function WorkerProfileEdit() {
                   <div className="flex items-center gap-2">
                     <input
                       type="time"
-                      defaultValue={details?.horaInicio || '08:00'}
-                      onBlur={e => { setWorkerDetails(workerDetails.map(w => w.user_id === currentUser.id ? { ...w, horaInicio: e.target.value } : w)); showToast('Horário inicial salvo!'); }}
+                      defaultValue={getWorkingSchedule(details).start}
+                      onBlur={async e => { if (!await setWorkerDetails(items => items.map(w => w.user_id === currentUser.id ? { ...w, horaInicio: e.target.value } : w))) return; showToast('Horário inicial salvo!'); }}
                       className={inp}
                     />
                     <span className="text-xs font-semibold text-slate-400">às</span>
                     <input
                       type="time"
-                      defaultValue={details?.horaFim || '18:00'}
-                      onBlur={e => { setWorkerDetails(workerDetails.map(w => w.user_id === currentUser.id ? { ...w, horaFim: e.target.value } : w)); showToast('Horário final salvo!'); }}
+                      defaultValue={getWorkingSchedule(details).end}
+                      onBlur={async e => { if (!await setWorkerDetails(items => items.map(w => w.user_id === currentUser.id ? { ...w, horaFim: e.target.value } : w))) return; showToast('Horário final salvo!'); }}
                       className={inp}
                     />
                   </div>
@@ -128,8 +129,8 @@ export default function WorkerProfileEdit() {
                   <div className="font-bold text-slate-900 text-xs mb-2">Dias de Atendimento</div>
                   <select
                     defaultValue={details?.diasTrabalho || details?.workingHours?.split(',')[0] || 'Seg-Sex'}
-                    onChange={e => {
-                      setWorkerDetails(workerDetails.map(w => w.user_id === currentUser.id ? { ...w, diasTrabalho: e.target.value } : w));
+                    onChange={async e => {
+                      if (!await setWorkerDetails(items => items.map(w => w.user_id === currentUser.id ? { ...w, diasTrabalho: e.target.value } : w))) return;
                       showToast('Dias de trabalho salvos!');
                     }}
                     className={inp + ' cursor-pointer'}
@@ -153,10 +154,10 @@ export default function WorkerProfileEdit() {
                 <input
                   type="tel"
                   defaultValue={currentUser.telefone}
-                  onBlur={e => {
+                  onBlur={async e => {
                     const novoTel = formatPhone(e.target.value);
-                    setUsers(users.map(u => u.id === currentUser.id ? { ...u, telefone: novoTel } : u));
-                    setCurrentUser({ ...currentUser, telefone: novoTel });
+                    if (!await setUsers(items => items.map(u => u.id === currentUser.id ? { ...u, telefone: novoTel } : u))) return;
+
                     showToast('WhatsApp público atualizado!');
                   }}
                   className={inp}
@@ -171,7 +172,7 @@ export default function WorkerProfileEdit() {
                   </h3>
                   {!isEditingBio && (
                     <button
-                      onClick={() => { setTempBio(details?.bio || ''); setIsEditingBio(true); }}
+                      onClick={async () => { setTempBio(details?.bio || ''); setIsEditingBio(true); }}
                       className="text-xs font-semibold text-[#EA1D2C] hover:underline cursor-pointer"
                     >
                       Editar
@@ -188,7 +189,7 @@ export default function WorkerProfileEdit() {
                     />
                     <div className="flex gap-2">
                       <button
-                        onClick={() => { setWorkerDetails(workerDetails.map(w => w.user_id === currentUser.id ? { ...w, bio: tempBio } : w)); setIsEditingBio(false); showToast('Bio atualizada!'); }}
+                        onClick={async () => { if (!await setWorkerDetails(items => items.map(w => w.user_id === currentUser.id ? { ...w, bio: tempBio } : w))) return; setIsEditingBio(false); showToast('Bio atualizada!'); }}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-xs transition cursor-pointer"
                       >
                         Salvar

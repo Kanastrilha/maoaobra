@@ -29,34 +29,8 @@ const ROLE_LABELS = {
   CONTRATANTE: { text: 'Cliente', cls: 'bg-slate-100 text-slate-600' },
 };
 
-export default function NavBar() {
-  const { currentUser, currentView, setCurrentView, logout, orders, users, supportTickets } = useAppStore();
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
-  const [deferredPrompt, setDeferredPrompt] = useState(window.deferredPwaPrompt || null);
-
-  useEffect(() => {
-    const handler = () => setDeferredPrompt(window.deferredPwaPrompt);
-    if (window.deferredPwaPrompt) setDeferredPrompt(window.deferredPwaPrompt);
-    window.addEventListener('pwa-ready', handler);
-    return () => window.removeEventListener('pwa-ready', handler);
-  }, []);
-
-  useEffect(() => {
-    if (isDark) document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
-  }, [isDark]);
-
-  const role = currentUser?.role;
-  const links = !currentUser ? [] : role === 'ADMIN' ? ADMIN_LINKS : role === 'TRABALHADOR' ? WORKER_LINKS : CONTRATANTE_LINKS;
-
-  const myOrders = !currentUser ? [] : orders.filter(o =>
-    role === 'CONTRATANTE' ? o.contratante_id === currentUser.id : o.worker_id === currentUser.id
-  );
-  const hasUnread = myOrders.some(o => o.chat_history?.length > 0 && ['PENDENTE','ACEITO','EM_ANDAMENTO'].includes(o.status));
-  const pendingApprovalsCount = role === 'ADMIN' ? users.filter(u => u.role === 'TRABALHADOR' && u.status === 'PENDING').length : 0;
-  const openTicketsCount = role === 'ADMIN' ? supportTickets.filter(t => t.status === 'OPEN').length : 0;
-
-  const Logo = () => (
+function Logo({ role, setCurrentView }) {
+  return (
     <button
       onClick={() => setCurrentView(role === 'ADMIN' ? 'ADMIN_DASH' : role === 'TRABALHADOR' ? 'WORKER_DASH' : 'HOME')}
       className="flex items-center gap-2.5 select-none cursor-pointer group text-left"
@@ -76,13 +50,42 @@ export default function NavBar() {
       </div>
     </button>
   );
+}
+
+export default function NavBar() {
+  const { currentUser, currentView, setCurrentView, logout, orders, users, supportTickets } = useAppStore();
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+  const [deferredPrompt, setDeferredPrompt] = useState(window.deferredPwaPrompt || null);
+
+  useEffect(() => {
+    const handler = () => setDeferredPrompt(window.deferredPwaPrompt);
+    window.addEventListener('pwa-ready', handler);
+    return () => window.removeEventListener('pwa-ready', handler);
+  }, []);
+
+  useEffect(() => {
+    if (isDark) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [isDark]);
+
+  const role = currentUser?.role;
+  const links = !currentUser ? [] : role === 'ADMIN' ? ADMIN_LINKS : role === 'TRABALHADOR' ? WORKER_LINKS : CONTRATANTE_LINKS;
+
+  const myOrders = !currentUser ? [] : orders.filter(o =>
+    role === 'CONTRATANTE' ? o.contratante_id === currentUser.id : o.worker_id === currentUser.id
+  );
+  const hasUnread = myOrders.some(o => o.chat_history?.length > 0 && ['PENDENTE','ACEITO','EM_ANDAMENTO'].includes(o.status));
+  const pendingApprovalsCount = role === 'ADMIN' ? users.filter(u => u.role === 'TRABALHADOR' && u.status === 'PENDING').length : 0;
+  const openTicketsCount = role === 'ADMIN' ? supportTickets.filter(t => t.status === 'OPEN').length : 0;
+
+
 
   if (!currentUser) {
     return (
       <header className="fixed top-0 w-full glass-header border-b border-slate-200/80 z-50 h-18 px-4 md:px-8">
         <div className="max-w-7xl mx-auto h-full flex items-center justify-between">
-          <Logo />
-          <div className="flex items-center gap-2.5">
+          <Logo role={role} setCurrentView={setCurrentView} />
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             <button
               onClick={() => setIsDark(!isDark)}
               title="Alternar tema"
@@ -105,9 +108,9 @@ export default function NavBar() {
             )}
             <button
               onClick={() => setCurrentView('REGISTER')}
-              className="hidden sm:inline-flex items-center gap-1.5 font-semibold text-sm text-slate-700 hover:text-[#EA1D2C] px-3.5 py-2 rounded-xl hover:bg-slate-100/70 transition"
+              className="inline-flex items-center gap-1.5 font-semibold text-xs sm:text-sm text-slate-700 hover:text-[#EA1D2C] px-2 sm:px-3.5 py-2 rounded-xl hover:bg-slate-100/70 transition"
             >
-              Cadastrar-se
+              <span className="sm:hidden">Cadastrar</span><span className="hidden sm:inline">Cadastrar-se</span>
             </button>
             <button
               onClick={() => setCurrentView('LOGIN')}
@@ -126,7 +129,7 @@ export default function NavBar() {
     <>
       {/* ── Mobile Top Bar (Logged in) ── */}
       <header className="md:hidden fixed top-0 w-full glass-header border-b border-slate-200/80 z-50 h-16 px-4 flex items-center justify-between">
-        <Logo />
+        <Logo role={role} setCurrentView={setCurrentView} />
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsDark(!isDark)}
@@ -147,7 +150,7 @@ export default function NavBar() {
       {/* ── Desktop Header ── */}
       <header className="hidden md:block fixed top-0 w-full glass-header border-b border-slate-200/80 z-50 h-18 px-8">
         <div className="max-w-7xl mx-auto h-full flex items-center justify-between">
-          <Logo />
+          <Logo role={role} setCurrentView={setCurrentView} />
 
           <nav className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl border border-slate-200/60">
             {links.map(link => {

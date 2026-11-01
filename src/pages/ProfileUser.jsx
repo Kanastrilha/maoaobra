@@ -5,7 +5,7 @@ import Header from '../components/ui/Header';
 import ImageUploader from '../components/ui/ImageUploader';
 
 export default function ProfileUser() {
-  const { currentUser, contratanteDetails, logout, deleteMyAccount, users, setUsers, setContratanteDetails, showToast, setCurrentUser, setCurrentView } = useAppStore();
+  const { currentUser, contratanteDetails, logout, deleteMyAccount, setUsers, setContratanteDetails, showToast, setCurrentView } = useAppStore();
 
   if (!currentUser) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8 animate-fade-in">
@@ -27,7 +27,7 @@ export default function ProfileUser() {
 
   return (
     <div className="pb-24 animate-fade-in w-full">
-      <Header title="Minha Conta" subtitle="Gerencie seus dados de perfil, segurança e privacidade (LGPD)" />
+      <Header title="Minha Conta" subtitle="Gerencie seus dados de perfil, dados da demonstração local" />
       <div className="max-w-3xl mx-auto px-4 md:px-8 space-y-6">
         <div className="card-pro rounded-2xl overflow-hidden">
           <div className="h-32 bg-slate-900 relative">
@@ -39,7 +39,7 @@ export default function ProfileUser() {
             <ImageUploader
               pathFolder={`users/${currentUser.id}/banner`}
               className="absolute top-3.5 right-3.5"
-              onUploadSuccess={(url) => { setContratanteDetails(contratanteDetails.map(d => d.user_id === currentUser.id ? { ...d, banner_url: url } : d)); showToast('Capa atualizada!'); }}
+              onUploadSuccess={async (url) => { if (!await setContratanteDetails(items => items.map(d => d.user_id === currentUser.id ? { ...d, banner_url: url } : d))) return; showToast('Capa atualizada!'); }}
               onError={(err) => showToast(err, 'error')}
             >
               <div role="button" className="bg-white/15 hover:bg-white/25 text-white px-3 py-1.5 rounded-xl backdrop-blur-md transition border border-white/20 text-xs font-semibold flex gap-1.5 items-center cursor-pointer">
@@ -58,7 +58,7 @@ export default function ProfileUser() {
               <ImageUploader
                 pathFolder={`users/${currentUser.id}/avatar`}
                 className="absolute -bottom-1.5 -right-1.5"
-                onUploadSuccess={(url) => { setUsers(users.map(u => u.id === currentUser.id ? { ...u, foto_perfil_url: url } : u)); setCurrentUser({ ...currentUser, foto_perfil_url: url }); showToast('Foto atualizada!'); }}
+                onUploadSuccess={async (url) => { if (!await setUsers(items => items.map(u => u.id === currentUser.id ? { ...u, foto_perfil_url: url } : u))) return; showToast('Foto atualizada!'); }}
                 onError={(err) => showToast(err, 'error')}
               >
                 <div role="button" className="bg-[#EA1D2C] text-white w-8 h-8 flex items-center justify-center rounded-xl shadow-xs hover:bg-[#C81422] transition border-2 border-white cursor-pointer">
@@ -79,7 +79,7 @@ export default function ProfileUser() {
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <InfoItem label="Telefone / WhatsApp" value={currentUser.telefone} />
-            <InfoItem label="CPF (Protegido pela LGPD)" value={maskCPF(details?.cpf)} />
+            <InfoItem label="CPF (mascarado na tela)" value={maskCPF(details?.cpf)} />
             <div className="sm:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
               <div className="text-[11px] font-semibold text-slate-400 uppercase mb-1">Endereço Cadastrado</div>
               <div className="text-sm font-bold text-slate-900">
@@ -98,7 +98,7 @@ export default function ProfileUser() {
               onClick={deleteMyAccount}
               className="w-full sm:w-auto text-xs font-semibold text-slate-400 hover:text-red-600 py-2 px-3 rounded-xl hover:bg-red-50 transition flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <i className="ph-bold ph-trash text-sm" /> Excluir Minha Conta e Dados (LGPD)
+              <i className="ph-bold ph-trash text-sm" /> Excluir minha conta local
             </button>
             <button
               onClick={logout}

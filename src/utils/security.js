@@ -1,19 +1,7 @@
-// src/utils/security.js — Criptografia, Validação de Documentos (LGPD) e Geolocalização Real
+// Formatação, verificação matemática de CPF e cálculo geométrico.
 
 /**
- * Gera um hash SHA-256 seguro usando a Web Crypto API nativa do navegador.
- * Nunca armazena senhas em texto puro no banco de dados.
- */
-export async function hashPassword(password, salt = 'maoaobra_prod_salt_v1') {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(`${salt}:${password}`);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-/**
- * Mascaramento de CPF para exibição em conformidade com a LGPD (ex: ***.456.789-**)
+ * Mascaramento de CPF para exibição (ex: ***.456.789-**)
  */
 export function maskCPF(cpf) {
   if (!cpf) return '—';
@@ -45,7 +33,7 @@ export function formatPhone(value) {
 }
 
 /**
- * Validação matemática oficial de CPF (Receita Federal)
+ * Verificação matemática dos dígitos de CPF. Não consulta a Receita Federal.
  */
 export function isValidCPF(cpf) {
   const clean = String(cpf || '').replace(/\D/g, '');
@@ -71,7 +59,9 @@ export function isValidCPF(cpf) {
  */
 export function sanitizeUser(user) {
   if (!user) return null;
-  const { senha, passwordHash, ...safeUser } = user;
+  const safeUser = { ...user };
+  delete safeUser.senha;
+  delete safeUser.passwordHash;
   return safeUser;
 }
 
@@ -91,26 +81,5 @@ export function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   // Fator de correção urbana (~1.25x para trajeto de rua vs linha reta)
   return (R * c * 1.25).toFixed(1);
-}
-
-/**
- * Busca coordenadas geográficas reais (Latitude/Longitude) a partir de Cidade/UF/Rua usando OpenStreetMap Nominatim
- */
-export async function fetchCoordinatesFromAddress({ rua, cidade, uf }) {
-  try {
-    const query = [rua, cidade, uf, 'Brasil'].filter(Boolean).join(', ');
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
-    const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' } });
-    const data = await res.json();
-    if (Array.isArray(data) && data.length > 0) {
-      return {
-        lat: parseFloat(data[0].lat),
-        lng: parseFloat(data[0].lon),
-      };
-    }
-  } catch (e) {
-    console.warn('Geocoding fallback:', e);
-  }
-  return null;
 }
 

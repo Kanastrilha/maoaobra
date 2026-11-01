@@ -22,3 +22,22 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.env
+.env.*
+!.env.example
+!.env.emulator
+.npm-cache
+
+# Credenciais privadas, dados exportados e cache de infraestrutura
+.firebase/
+.secrets/
+*-firebase-adminsdk-*.json
+*service-account*.json
+*serviceAccount*.json
+*.pem
+*.key
+backups/
+exports/
+*-debug.log*
+.emulator-cache/

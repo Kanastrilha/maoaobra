@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#EA1D2C" />
-    <link rel="manifest" href="/maoaobra/manifest.json" />
-    <link rel="apple-touch-icon" href="/maoaobra/icon.svg" />
+    <link rel="manifest" href="/maoaobra-copia/manifest.json" />
+    <link rel="apple-touch-icon" href="/maoaobra-copia/icon.svg" />
     <meta name="description" content="mãoAobra - Encontre os melhores profissionais de serviços perto de você. Eletricistas, encanadores, diaristas e muito mais." />
-    <title>mãoAobra — Plataforma de Serviços Profissionais</title>
+    <title>mãoAobra — Demonstração local</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
@@ -26,14 +26,6 @@
         window.deferredPwaPrompt = e;
         window.dispatchEvent(new Event('pwa-ready'));
       });
-
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then((registrations) => {
-          for (let reg of registrations) {
-            reg.unregister();
-          }
-        });
-      }
     </script>
   </body>
 </html>

@@ -6,35 +6,29 @@ import Header from '../components/ui/Header';
 import ImageUploader from '../components/ui/ImageUploader';
 
 export default function WorkerServicesCRUD() {
-  const { services, currentUser, setServices, showToast } = useAppStore();
+  const { services, currentUser, saveService: persistService, deleteService: removeService, showToast } = useAppStore();
   const myServices = services.filter(s => s.worker_id === currentUser.id);
   const [modalData, setModalData] = useState(null);
   const [serviceToDelete, setServiceToDelete] = useState(null);
 
   const openModal = (srv = null) => {
-    setModalData(srv || { id: 's' + Date.now(), worker_id: currentUser.id, titulo: '', preco_base: '', descricao: '', imagem_url: '' });
+    setModalData(srv || { id: crypto.randomUUID(), worker_id: currentUser.id, titulo: '', preco_base: '', descricao: '', imagem_url: '' });
   };
   const closeModal = () => setModalData(null);
 
-  const saveService = (e) => {
+  const saveService = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const srvData = { ...modalData, titulo: fd.get('titulo'), descricao: fd.get('descricao'), preco_base: Number(fd.get('preco_base')), imagem_url: modalData.imagem_url };
-    if (services.find(s => s.id === srvData.id)) {
-      setServices(services.map(s => s.id === srvData.id ? srvData : s));
-      showToast('Serviço atualizado!');
-    } else {
-      setServices([...services, srvData]);
-      showToast('Serviço adicionado!');
-    }
+    if (!await persistService(srvData)) return;
+    showToast('Serviço salvo!');
     closeModal();
   };
 
   const deleteService = (id) => setServiceToDelete(id);
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (serviceToDelete) {
-      setServices(services.filter(s => s.id !== serviceToDelete));
-      showToast('Serviço excluído!');
+      if (!await removeService(serviceToDelete)) return;
       setServiceToDelete(null);
     }
   };

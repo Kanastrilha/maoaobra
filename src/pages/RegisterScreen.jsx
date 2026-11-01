@@ -34,28 +34,29 @@ export default function RegisterScreen() {
       showToast('CPF inválido. Verifique os dígitos informados.', 'error');
       return;
     }
-    if (senha.length < 6) {
-      showToast('Por segurança, a senha deve ter no mínimo 6 caracteres.', 'warning');
+    if (senha.length < 8) {
+      showToast('Por segurança, a senha deve ter no mínimo 8 caracteres.', 'warning');
       return;
     }
     if (!lgpd) {
-      showToast('Você precisa aceitar a Política de Privacidade e LGPD.', 'error');
+      showToast('Você precisa aceitar a informação sobre os dados locais.', 'error');
       return;
     }
 
     setSubmitting(true);
+    try {
     const userData = {
       nome: nome.trim(),
       email: email.trim().toLowerCase(),
       senha,
       telefone,
       role,
-      foto_perfil_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(nome.trim())}&background=ea1d2c&color=fff`
+      foto_perfil_url: ``
     };
     const specificData = { cpf, cep, uf, cidade, rua, bairro, numero };
     if (role === 'CONTRATANTE') await register(userData, { ...specificData, bio_curta: '' });
     else await register(userData, { ...specificData, bio, categorias: [categoria] });
-    setSubmitting(false);
+    } finally { setSubmitting(false); }
   };
 
   const handleCepChange = async (e) => {
@@ -100,7 +101,7 @@ export default function RegisterScreen() {
         <div className="mb-6">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Criar nova conta</h1>
           <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
-            Escolha seu perfil de uso e preencha seus dados cadastrais verificados.
+            Escolha seu perfil de uso e preencha seus dados para a demonstração local.
           </p>
         </div>
 
@@ -151,9 +152,9 @@ export default function RegisterScreen() {
           <div className="bg-amber-50/90 border border-amber-200/80 p-4 rounded-2xl mb-6 flex gap-3.5 items-start animate-fade-in">
             <i className="ph-fill ph-shield-check text-amber-600 text-xl shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-bold text-amber-900 text-xs uppercase tracking-wider">Verificação de Segurança (KYC)</h4>
+              <h4 className="font-bold text-amber-900 text-xs uppercase tracking-wider">Análise do perfil</h4>
               <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">
-                Para manter a qualidade e confiança da plataforma, novos perfis profissionais passam por validação de CPF e aprovação da administração antes de ficarem visíveis nas buscas.
+                Para manter a qualidade e confiança da plataforma, novos perfis profissionais passam por verificação dos dígitos do CPF e aprovação da administração antes de ficarem visíveis nas buscas.
               </p>
             </div>
           </div>
@@ -168,7 +169,7 @@ export default function RegisterScreen() {
                 <input required type="text" maxLength="100" value={nome} onChange={e => setNome(e.target.value)} className={inp} placeholder="Ex: Maria Aparecida Silva" />
               </div>
               <div>
-                <Label>CPF (Validação Receita Federal)</Label>
+                <Label>CPF (verificação dos dígitos)</Label>
                 <input required type="text" maxLength="14" value={cpf} onChange={e => setCpf(formatCPF(e.target.value))} className={inp} placeholder="000.000.000-00" />
               </div>
               <div>
@@ -186,8 +187,8 @@ export default function RegisterScreen() {
                 <input required type="email" maxLength="100" value={email} onChange={e => setEmail(e.target.value)} className={inp} placeholder="nome@email.com" />
               </div>
               <div>
-                <Label>Senha Segura (mín. 6 caracteres)</Label>
-                <input required type="password" minLength={6} maxLength="50" value={senha} onChange={e => setSenha(e.target.value)} className={inp} placeholder="••••••••" />
+                <Label>Senha Segura (mín. 8 caracteres)</Label>
+                <input required type="password" minLength={8} maxLength="50" value={senha} onChange={e => setSenha(e.target.value)} className={inp} placeholder="••••••••" />
               </div>
             </div>
           </Card>
@@ -263,15 +264,15 @@ export default function RegisterScreen() {
               className="mt-0.5 w-4 h-4 accent-[#EA1D2C] cursor-pointer shrink-0"
             />
             <label htmlFor="lgpd" className="text-xs text-slate-600 leading-relaxed cursor-pointer">
-              Li e concordo com os{' '}
+              Li e compreendi os{' '}
               <button
                 type="button"
                 onClick={() => setShowPrivacyModal(true)}
                 className="font-bold text-[#EA1D2C] hover:underline cursor-pointer"
               >
-                Termos de Uso e Política de Privacidade
+                informações sobre os dados locais
               </button>
-              . Autorizo o tratamento dos meus dados com criptografia de credenciais e mascaramento de documentos em conformidade com a <strong>LGPD (Lei nº 13.709/2018)</strong>.
+              . Não informe dados pessoais reais nesta demonstração.
             </label>
           </div>
 
@@ -281,7 +282,7 @@ export default function RegisterScreen() {
             className="w-full bg-[#EA1D2C] hover:bg-[#C81422] disabled:opacity-60 text-white font-semibold text-sm py-3.5 rounded-xl shadow-sm shadow-red-500/20 transition cursor-pointer"
           >
             {submitting
-              ? 'Criptografando dados e registrando...'
+              ? 'Registrando...'
               : role === 'CONTRATANTE'
               ? 'Finalizar Cadastro de Cliente'
               : 'Submeter Cadastro Profissional'}

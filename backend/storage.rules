@@ -1,0 +1,7 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Upload remoto fica fechado até existir processamento seguro de imagens.
+    match /{path=**} { allow read, write: if false; }
+  }
+}

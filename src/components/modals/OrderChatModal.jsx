@@ -14,8 +14,7 @@ const STATUS_BADGE = {
 };
 
 export default function OrderChatModal({ order, onClose }) {
-  if (!order) return null;
-  const { users, currentUser, setOrders, orders, services, showToast, setSelectedWorkerId, setSelectedClientId, reviews, setReviews } = useAppStore();
+  const { users, currentUser, changeOrderStatus, sendMessage, services, showToast, setSelectedWorkerId, setSelectedClientId, submitReview } = useAppStore();
   const [message, setMessage] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [showBudgetInput, setShowBudgetInput] = useState(false);
@@ -26,21 +25,23 @@ export default function OrderChatModal({ order, onClose }) {
   const [clientComment, setClientComment] = useState('');
   const chatRef = useRef(null);
 
-  const client = users.find(u => u.id === order.contratante_id);
-  const worker = users.find(u => u.id === order.worker_id);
-  const srv = services.find(s => s.id === order.servico_id);
-  const otherUser = currentUser.role === 'CONTRATANTE' ? worker : client;
+  const client = users.find(u => u.id === order?.contratante_id);
+  const worker = users.find(u => u.id === order?.worker_id);
+  const srv = services.find(s => s.id === order?.servico_id);
+  const otherUser = currentUser?.role === 'CONTRATANTE' ? worker : client;
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
-  }, [order.chat_history]);
+  }, [order?.chat_history]);
 
-  const updateOrderStatus = (status) => {
-    setOrders(orders.map(o => o.id === order.id ? { ...o, status } : o));
+  if (!order || !currentUser) return null;
+
+  const updateOrderStatus = async (status) => {
+    if (!await changeOrderStatus(order.id, status)) return;
     showToast(status === 'RECUSADO' ? 'Pedido recusado.' : status === 'EM_ANDAMENTO' ? 'Serviço aceito! Mãos à obra!' : 'Serviço finalizado!');
   };
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (showBudgetInput && budgetAmount) {
       const budgetVal = Number(budgetAmount);
@@ -52,7 +53,7 @@ export default function OrderChatModal({ order, onClose }) {
           isBudget: true,
           amount: budgetVal
         };
-        setOrders(orders.map(o => o.id === order.id ? { ...o, preco_final: budgetVal, chat_history: [...(o.chat_history || []), newMsg] } : o));
+        if (!await sendMessage(order.id, newMsg)) return;
         setShowBudgetInput(false);
         setBudgetAmount('');
         return;
@@ -66,31 +67,22 @@ export default function OrderChatModal({ order, onClose }) {
       image: imageUrl || null,
       time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     };
-    setOrders(orders.map(o => o.id === order.id ? { ...o, chat_history: [...(o.chat_history || []), newMsg] } : o));
+    if (!await sendMessage(order.id, newMsg)) return;
     setMessage('');
     setImageUrl('');
   };
 
-  const handleFinish = (e) => {
+  const handleFinish = async (e) => {
     e.preventDefault();
     if (!finishPrice || Number(finishPrice) <= 0) {
       showToast('Insira um valor final válido!', 'warning');
       return;
     }
     const finalVal = Number(finishPrice);
-    setOrders(orders.map(o => o.id === order.id ? { ...o, status: 'CONCLUIDO', preco_final: finalVal } : o));
+    if (!await changeOrderStatus(order.id, 'CONCLUIDO', finalVal)) return;
     
     if (clientComment) {
-      setReviews([...reviews, {
-        id: 'r' + Date.now(),
-        order_id: order.id,
-        worker_id: currentUser.id,
-        user_id: order.contratante_id,
-        nota: clientRating,
-        comentario: clientComment,
-        isWorkerReview: true,
-        data: new Date().toISOString()
-      }]);
+      await submitReview({ order_id: order.id, nota: clientRating, comentario: clientComment });
     }
 
     showToast('Trabalho finalizado com sucesso!');

@@ -1,69 +1,76 @@
-# mãoAobra 🛠️
+# mãoAobra — cópia local
 
-O **mãoAobra** é um marketplace de serviços rápidos, criado como projeto acadêmico. Ele funciona como uma plataforma estilo "iFood" para conectar prestadores de serviço (Eletricistas, Encanadores, Diaristas, etc.) a clientes que precisam de reparos imediatos.
+Esta pasta é a versão de trabalho independente. O projeto original continua na Área de Trabalho, em `maosobra`.
 
-Este projeto foi construído focando na excelência da Interface do Usuário (UI) e na Experiência do Usuário (UX), possuindo um design responsivo (*Mobile-First*) altamente focado em usabilidade e acessibilidade.
+## Executar
 
-## 🌟 Principais Funcionalidades
+Use Node.js 24, conforme `.nvmrc` e `engines` no `package.json`.
 
-- **Múltiplos Perfis de Usuário:** Diferentes experiências para Clientes, Trabalhadores e Administradores.
-- **Busca por Proximidade Geométrica:** O algoritmo de busca organiza e exibe primeiro os profissionais que estão mais perto do cliente (baseado em Cidade/UF).
-- **Validação Temporal Inteligente:** O profissional escolhe seu horário de expediente. Fora do horário, o sistema bloqueia automaticamente novas solicitações e marca o profissional como "Indisponível".
-- **Sistema de Agendamento e Chat Local:** Fluxos completos de simulação de pedido com notificações e mudança de status em tempo real.
-- **Feedback Sensorial:** O aplicativo conta com *Toast Notifications* visuais acompanhadas de bips de áudio dinâmicos.
-- **Mobile First e Design Premium:** Utilizando TailwindCSS para criar um visual fluído, claro e perfeitamente legível em telas pequenas.
-
-## 🛠️ Tecnologias Utilizadas
-
-- **[React 19](https://react.dev/)**: Biblioteca central para a criação das interfaces de usuário.
-- **[Vite](https://vitejs.dev/)**: Bundler e ambiente de desenvolvimento ultrarrápido.
-- **[Tailwind CSS v4](https://tailwindcss.com/)**: Framework de estilização utilitária para o design moderno e responsivo.
-- **[Zustand](https://github.com/pmndrs/zustand)**: Gerenciamento global de estado (Mock State).
-- **[Firebase Realtime Database](https://firebase.google.com/)**: Utilizado para persistir os dados mockados, permitindo que a aplicação se comporte como se tivesse um backend real de produção.
-- **[Phosphor Icons / Lucide](https://phosphoricons.com/)**: Iconografia vetorial rica.
-
-## 🚀 Como Executar Localmente
-
-Siga os passos abaixo para rodar a aplicação no seu computador:
-
-1. Clone este repositório:
-   ```bash
-   git clone https://github.com/Kanastrilha/maoaobra.git
-   ```
-
-2. Acesse a pasta do projeto:
-   ```bash
-   cd maoaobra
-   ```
-
-3. Instale as dependências:
-   ```bash
-   npm install
-   ```
-
-4. Inicie o servidor de desenvolvimento:
-   ```bash
-   npm run dev
-   ```
-
-5. O aplicativo estará rodando em `http://localhost:5173`.
-
-## 👥 Contas de Demonstração para Teste
-
-A aplicação inicia com o banco de dados carregado com perfis de teste. Você pode fazer o login sem precisar criar uma conta usando as credenciais abaixo:
-
-**Senha para todas as contas:** `123`
-
-- **Administrador:** `legalmano@gmail.com`
-- **Trabalhador (Eletricista):** `eduardo@gmail.com`
-- **Trabalhador (TI):** `ti@gmail.com`
-- **Cliente:** `pedro@gmail.com`
-
-## 🌐 Deploy
-A aplicação está configurada para rodar nativamente via **GitHub Pages**. Toda alteração na branch `main` pode ser rapidamente publicada no site ao vivo usando o script configurado no projeto:
-```bash
-npm run deploy
+```powershell
+cd "C:\Users\Kanas\OneDrive\Documentos\ChatGPT\vamos ver\maoaobra-copia"
+npm ci --ignore-scripts
+npm run dev
 ```
 
----
-*Projeto desenvolvido para fins educacionais e apresentação de Trabalho de Conclusão (TCC).*
+Se as dependências já estiverem instaladas, basta `npm run dev`. Abra o endereço `/maoaobra-copia/` exibido pelo Vite.
+
+```powershell
+npm test
+npm run lint
+npm run build
+npm run preview
+npm run check
+npm run audit:security
+```
+
+## Como os dados funcionam
+
+- Há dois modos independentes: **local**, com IndexedDB em `maoaobra-copia-v1`, e **firebase-emulator**, com Auth, Firestore e funções executados neste computador.
+- Para testar o backend, siga [docs/BACKEND-EMULADORES.md](docs/BACKEND-EMULADORES.md): `npm run emulators`, `npm run seed:emulators` e `npm run dev:backend`. As instruções e contas abaixo nesta seção referem-se ao modo IndexedDB.
+- Não há conexão com o Firebase original, envio de endereço para geocodificação ou preenchimento automático com GPS.
+- Variáveis `VITE_FIREBASE_*`, outro `VITE_DATA_MODE` ou variáveis `VITE_` fora da lista permitida impedem também a compilação. Variáveis `VITE_` são públicas e não devem conter segredos.
+- O ViaCEP preenche o endereço a partir do CEP digitado. Fontes, ícones e fotos de exemplo continuam usando serviços externos.
+- Não use dados pessoais reais. Esta demonstração não constitui um ambiente de produção: quem controla o navegador também controla a base local.
+- Os dados persistem ao recarregar e são compartilhados entre abas da **mesma origem** (mesmo navegador, host e porta). Outros navegadores e computadores têm bases diferentes.
+- O chat e os cadastros são gravados em transações, sempre sobre a versão mais recente do registro. Falhas de gravação são exibidas na interface.
+- A exclusão de conta remove os registros associados e as credenciais locais. Uma coleção vazia não é repovoada automaticamente.
+
+## Contas fictícias
+
+As três opções de acesso rápido ficam na tela de login. A senha de demonstração é `123`.
+
+| Perfil | E-mail fictício |
+| --- | --- |
+| Cliente | pedro@example.test |
+| Profissional | eduardo@example.test |
+| Administrador local | legalmano@example.test |
+
+Novas contas exigem senha de pelo menos 8 caracteres e usam PBKDF2/SHA-256 com 600.000 iterações e salt aleatório. Nenhuma senha ou hash é incluído nos dados enviados aos componentes da interface.
+
+Os cadastros profissionais ficam pendentes até aprovação pelo administrador da demonstração. A verificação de CPF confere somente os dígitos; não consulta a Receita Federal. As notas aparecem somente após avaliações de pedidos concluídos, com uma avaliação por pedido e autor.
+
+O expediente considera os dias de trabalho, o fuso `America/Cuiaba` e horários que atravessam a meia-noite. Pedidos podem ser enviados fora do expediente para resposta posterior. O botão de WhatsApp é simulado.
+
+## Antes de conectar um serviço público
+
+O backend já implementa Auth, autorização de operações e separação dos dados públicos e privados nos emuladores. A conexão com a nuvem continua desabilitada. Será necessário criar um ambiente de homologação separado e completar os itens operacionais documentados. As contas fictícias não devem ser migradas para produção.
+
+Os arquivos `firestore.rules` e `storage.rules` bloqueiam todo acesso remoto por precaução. **Não publique essas regras no projeto original**, pois bloqueariam seu funcionamento. Nenhuma regra foi implantada.
+
+O `firebase.json` dos emuladores usa as regras em `backend/`, que autorizam leituras específicas e negam toda escrita direta do cliente. Uploads e exclusão de conta permanecem bloqueados no backend nesta etapa.
+
+O script que publicava no GitHub Pages original foi removido. A compilação `dist/` pode ser inspecionada localmente com `npm run preview`; esta pasta não está publicada.
+
+## Verificação
+
+Os testes em `tests/domain.test.js` cobrem isolamento de configuração, sessões, permissões, cadastros, pedidos, mensagens, avaliações, exclusão e horários. O fluxo cliente → pedido fora do expediente → chat em duas abas → conclusão com avaliação também foi verificado no navegador.
+
+`npm run test:backend` inicia os emuladores e executa `tests/backend/security.test.js`, que testa os serviços por requisições diretas, incluindo tentativas de acesso indevido, Auth, confirmação de e-mail, recuperação de senha, concorrência e idempotência.
+
+## Segurança e infraestrutura
+
+O plano de backend, os riscos observados, as permissões propostas e os critérios para produção estão em [docs/SEGURANCA-E-INFRAESTRUTURA.md](docs/SEGURANCA-E-INFRAESTRUTURA.md).
+
+O CI em `.github/workflows/ci.yml` executa instalação pelo lockfile, lint, testes de domínio e dos emuladores, builds dos dois modos e auditoria sem publicar nada. O Dependabot propõe atualizações semanais. Ambos estão apenas preparados localmente: para ativá-los, esta pasta deve ser a raiz de um repositório no GitHub. Nenhum envio ao GitHub foi feito.
+
+`npm run audit:security` falha para alertas altos e críticos e continua exibindo os moderados. A integração tem uma correção transitiva gRPC documentada em `docs/BACKEND-EMULADORES.md`. Consulte o resultado atual da auditoria ao atualizar dependências.

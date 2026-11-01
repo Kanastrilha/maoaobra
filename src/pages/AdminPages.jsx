@@ -6,8 +6,8 @@ import Header from '../components/ui/Header';
 
 // ---- AdminUserDetailModal ----
 function AdminUserDetailModal({ user, onClose }) {
-  if (!user) return null;
   const { workerDetails, contratanteDetails, orders, services, users } = useAppStore();
+  if (!user) return null;
   const details = user.role === 'CONTRATANTE' ? contratanteDetails.find(d => d.user_id === user.id) : workerDetails.find(d => d.user_id === user.id);
   const userOrders = user.role === 'CONTRATANTE' ? orders.filter(o => o.contratante_id === user.id) : orders.filter(o => o.worker_id === user.id);
 
@@ -250,14 +250,13 @@ export function AdminApprovals() {
 }
 
 export function AdminSupport() {
-  const { supportTickets, setSupportTickets, users } = useAppStore();
+  const { supportTickets, sendTicketMessage, closeTicket, users } = useAppStore();
   const [replyMsg, setReplyMsg] = useState({});
   const [activeTicketId, setActiveTicketId] = useState(null);
 
-  const handleReply = (ticketId) => {
+  const handleReply = async (ticketId) => {
     if (!replyMsg[ticketId]) return;
-    const newMsg = { sender: 'ADMIN', text: replyMsg[ticketId], time: new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }) };
-    setSupportTickets(supportTickets.map(t => t.id === ticketId ? { ...t, messages: [...t.messages, newMsg] } : t));
+    if (!await sendTicketMessage(ticketId, replyMsg[ticketId])) return;
     setReplyMsg({ ...replyMsg, [ticketId]: '' });
   };
 
@@ -322,9 +321,9 @@ export function AdminSupport() {
                   </div>
                 </div>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (window.confirm('Encerrar ticket?')) {
-                      setSupportTickets(supportTickets.map(x => x.id === t.id ? { ...x, status: 'CLOSED' } : x));
+                      if (!await closeTicket(t.id)) return;
                       setActiveTicketId(null);
                     }
                   }}

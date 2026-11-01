@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { storage, ref, uploadBytesResumable, getDownloadURL } from '../../firebase';
+import { DATA_MODE } from '../../firebase.js';
 
 /**
  * Redimensiona e comprime a imagem no cliente usando HTML5 Canvas (formato WebP/JPEG, máx 900px),
- * reduzindo fotos de 5MB+ para ~35KB antes de enviar ao Firebase Storage / Firestore.
+ * reduzindo fotos de 5MB+ para ~35KB antes de enviar ao armazenamento local.
  */
 function compressImage(file, maxWidth = 900, quality = 0.78) {
   return new Promise((resolve, reject) => {
@@ -42,13 +42,18 @@ function compressImage(file, maxWidth = 900, quality = 0.78) {
   });
 }
 
-export default function ImageUploader({ onUploadSuccess, onUploadStart, onError, className, children, pathFolder = 'uploads' }) {
+export default function ImageUploader({ onUploadSuccess, onUploadStart, onError, className, children }) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
 
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (DATA_MODE !== 'local') {
+      if (onError) onError('Uploads no backend ainda estão bloqueados até a implementação do processamento seguro de imagens.');
+      return;
+    }
 
     if (!file.type.startsWith('image/')) {
       if (onError) onError('Apenas arquivos de imagem são permitidos.');
@@ -68,40 +73,8 @@ export default function ImageUploader({ onUploadSuccess, onUploadStart, onError,
       const { blob, dataUrl } = await compressImage(file);
       setProgress(60);
 
-      // Tenta upload real para o Firebase Cloud Storage com timeout de segurança;
-      // se o bucket/regras ainda não estiverem liberados no console, usa a imagem WebP comprimida (~30KB).
-      let finalUrl = dataUrl;
-      if (blob && storage) {
-        try {
-          const fileName = `${pathFolder}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}.webp`;
-          const storageRef = ref(storage, fileName);
-          const uploadPromise = new Promise((resolve, reject) => {
-            const task = uploadBytesResumable(storageRef, blob);
-            task.on(
-              'state_changed',
-              (snap) => {
-                const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 40);
-                setProgress(60 + pct);
-              },
-              (err) => reject(err),
-              async () => {
-                const url = await getDownloadURL(task.snapshot.ref);
-                resolve(url);
-              }
-            );
-          });
-
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Storage timeout')), 3500)
-          );
-
-          finalUrl = await Promise.race([uploadPromise, timeoutPromise]);
-        } catch (storageErr) {
-          // Fallback transparente para o WebP comprimido
-          finalUrl = dataUrl;
-        }
-      }
-
+      if (!blob) throw new Error('Não foi possível comprimir a imagem.');
+      const finalUrl = dataUrl;
       setProgress(100);
       setTimeout(() => {
         setUploading(false);

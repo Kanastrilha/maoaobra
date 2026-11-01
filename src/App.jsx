@@ -1,70 +1,63 @@
 // src/App.jsx — Router completo
-import { useState, useEffect } from 'react';
-import { useAppStore } from './store';
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { useAppStore, canAccessView } from './store';
+import { DATA_MODE } from './firebase.js';
 
 import Toast from './components/ui/Toast';
 import NavBar from './components/layout/NavBar';
 import SupportWidget from './components/layout/SupportWidget';
 import PrivacyModal from './components/modals/PrivacyModal';
 
-import LoginScreen from './pages/LoginScreen';
-import RegisterScreen from './pages/RegisterScreen';
+const LoginScreen = lazy(() => import('./pages/LoginScreen'));
+const RegisterScreen = lazy(() => import('./pages/RegisterScreen'));
 import HomeContratante from './pages/HomeContratante';
-import WorkerProfileDetail from './pages/WorkerProfileDetail';
-import ClientOrders from './pages/ClientOrders';
-import ProfileUser from './pages/ProfileUser';
-import ClientProfileDetail from './pages/ClientProfileDetail';
+const WorkerProfileDetail = lazy(() => import('./pages/WorkerProfileDetail'));
+const ClientOrders = lazy(() => import('./pages/ClientOrders'));
+const ProfileUser = lazy(() => import('./pages/ProfileUser'));
+const ClientProfileDetail = lazy(() => import('./pages/ClientProfileDetail'));
 
-import WorkerDashboard from './pages/WorkerDashboard';
-import WorkerServicesCRUD from './pages/WorkerServicesCRUD';
-import WorkerHistory from './pages/WorkerHistory';
-import WorkerProfileEdit from './pages/WorkerProfileEdit';
+const WorkerDashboard = lazy(() => import('./pages/WorkerDashboard'));
+const WorkerServicesCRUD = lazy(() => import('./pages/WorkerServicesCRUD'));
+const WorkerHistory = lazy(() => import('./pages/WorkerHistory'));
+const WorkerProfileEdit = lazy(() => import('./pages/WorkerProfileEdit'));
 
-import AdminDashboard from './pages/AdminDashboard';
-import { AdminClients, AdminWorkers, AdminApprovals, AdminSupport, AdminChats } from './pages/AdminPages';
-import ActiveChats from './pages/ActiveChats';
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminClients = lazy(() => import('./pages/AdminPages').then(module => ({ default: module.AdminClients })));
+const AdminWorkers = lazy(() => import('./pages/AdminPages').then(module => ({ default: module.AdminWorkers })));
+const AdminApprovals = lazy(() => import('./pages/AdminPages').then(module => ({ default: module.AdminApprovals })));
+const AdminSupport = lazy(() => import('./pages/AdminPages').then(module => ({ default: module.AdminSupport })));
+const AdminChats = lazy(() => import('./pages/AdminPages').then(module => ({ default: module.AdminChats })));
+const ActiveChats = lazy(() => import('./pages/ActiveChats'));
 
 function AppRouter() {
   const {
     currentView, currentUser,
     selectedWorkerId, setSelectedWorkerId,
     selectedClientId, setSelectedClientId,
-    isLoaded, initFirebase
+    isLoaded, loadError, initialize
   } = useAppStore();
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
-  useEffect(() => {
-    initFirebase();
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => console.log('Location granted:', pos.coords.latitude, pos.coords.longitude),
-        (err) => console.log('Location denied/error:', err)
-      );
-    }
-  }, [initFirebase]);
+  useEffect(() => initialize(), [initialize]);
 
   // History API
   useEffect(() => {
-    const handler = (e) => {
-      if (e.state) {
-        useAppStore.setState({
-          currentView: e.state.view || 'HOME',
-          selectedWorkerId: e.state.workerId || null,
-          selectedClientId: e.state.clientId || null,
-        });
-      }
-    };
+    const handler = e => useAppStore.getState().restoreNavigation(e.state);
+    useAppStore.getState().restoreNavigation(window.history.state);
     window.addEventListener('popstate', handler);
-    window.history.replaceState({ view: currentView, workerId: null, clientId: null }, '', window.location.pathname);
+    window.history.replaceState({ view: useAppStore.getState().currentView, workerId: useAppStore.getState().selectedWorkerId, clientId: null }, '', window.location.pathname + window.location.search);
     return () => window.removeEventListener('popstate', handler);
   }, []);
+
+  const currentUserId = currentUser?.id;
 
   // Inactivity Timeout
   useEffect(() => {
     let timeout;
+    let lastTouch = 0;
     const resetTimer = () => {
-      if (currentUser) {
-        localStorage.setItem('maos_lastActivity', Date.now().toString());
+      if (currentUserId) {
+        if (Date.now() - lastTouch > 15_000) { lastTouch = Date.now(); void useAppStore.getState().touchSession(); }
         clearTimeout(timeout);
         timeout = setTimeout(() => {
           useAppStore.getState().logout();
@@ -73,7 +66,7 @@ function AppRouter() {
       }
     };
 
-    if (currentUser) {
+    if (currentUserId) {
       resetTimer();
       window.addEventListener('mousemove', resetTimer);
       window.addEventListener('keypress', resetTimer);
@@ -86,7 +79,9 @@ function AppRouter() {
       window.removeEventListener('keypress', resetTimer);
       window.removeEventListener('touchstart', resetTimer);
     };
-  }, [currentUser]);
+  }, [currentUserId]);
+
+  if (loadError) return (<div className="min-h-screen bg-slate-50 flex items-center justify-center p-6"><div role="alert" className="max-w-md rounded-2xl bg-white border border-red-200 p-6"><h1 className="text-xl font-bold mb-3">Não foi possível abrir a cópia local</h1><p className="text-sm text-slate-600 mb-4">{loadError}</p><button onClick={() => window.location.reload()} className="rounded-xl bg-[#EA1D2C] text-white px-4 py-2">Tentar novamente</button></div></div>);
 
   if (!isLoaded) {
     return (
@@ -97,43 +92,45 @@ function AppRouter() {
         <div className="text-xl font-extrabold tracking-tight text-slate-900">
           mão<span className="text-[#EA1D2C]">A</span>obra
         </div>
-        <p className="text-xs font-medium text-slate-400 mt-1.5">Sincronizando coleções seguras em tempo real...</p>
+        <p className="text-xs font-medium text-slate-400 mt-1.5">Abrindo sua demonstração local...</p>
       </div>
     );
   }
 
+  const view = canAccessView(currentView, currentUser) ? currentView : 'HOME';
   const hideNav = currentView === 'LOGIN' || currentView === 'REGISTER' || !!selectedWorkerId;
   const navPaddingClass = !hideNav ? (!currentUser ? 'pt-18' : 'pt-16 md:pt-18') : '';
   const footerPadding = (!currentUser || hideNav) ? 'pb-8' : 'pb-24 md:pb-8';
 
   let content;
-  if (currentView === 'LOGIN')                content = <LoginScreen />;
-  else if (currentView === 'REGISTER')        content = <RegisterScreen />;
+  if (view === 'LOGIN')                content = <LoginScreen />;
+  else if (view === 'REGISTER')        content = <RegisterScreen />;
   else if (selectedWorkerId)                  content = <WorkerProfileDetail workerId={selectedWorkerId} onBack={() => setSelectedWorkerId(null)} />;
-  else if (selectedClientId)                  content = <ClientProfileDetail clientId={selectedClientId} onBack={() => setSelectedClientId(null)} />;
-  else if (currentView === 'HOME')            content = <HomeContratante onSelectWorker={setSelectedWorkerId} />;
-  else if (currentView === 'CHATS')           content = <ActiveChats />;
-  else if (currentView === 'ORDERS')          content = <ClientOrders />;
-  else if (currentView === 'PROFILE')         content = <ProfileUser />;
-  else if (currentView === 'WORKER_DASH')     content = <WorkerDashboard />;
-  else if (currentView === 'WORKER_SERVICES') content = <WorkerServicesCRUD />;
-  else if (currentView === 'WORKER_HISTORY')  content = <WorkerHistory />;
-  else if (currentView === 'WORKER_PROFILE')  content = <WorkerProfileEdit />;
-  else if (currentView === 'ADMIN_DASH')      content = <AdminDashboard />;
-  else if (currentView === 'ADMIN_CLIENTS')   content = <AdminClients />;
-  else if (currentView === 'ADMIN_WORKERS')   content = <AdminWorkers />;
-  else if (currentView === 'ADMIN_APPROVALS') content = <AdminApprovals />;
-  else if (currentView === 'ADMIN_SUPPORT')   content = <AdminSupport />;
-  else if (currentView === 'ADMIN_CHATS')     content = <AdminChats />;
+  else if (selectedClientId && currentUser)                  content = <ClientProfileDetail clientId={selectedClientId} onBack={() => setSelectedClientId(null)} />;
+  else if (view === 'HOME')            content = <HomeContratante onSelectWorker={setSelectedWorkerId} />;
+  else if (view === 'CHATS')           content = <ActiveChats />;
+  else if (view === 'ORDERS')          content = <ClientOrders />;
+  else if (view === 'PROFILE')         content = <ProfileUser />;
+  else if (view === 'WORKER_DASH')     content = <WorkerDashboard />;
+  else if (view === 'WORKER_SERVICES') content = <WorkerServicesCRUD />;
+  else if (view === 'WORKER_HISTORY')  content = <WorkerHistory />;
+  else if (view === 'WORKER_PROFILE')  content = <WorkerProfileEdit />;
+  else if (view === 'ADMIN_DASH')      content = <AdminDashboard />;
+  else if (view === 'ADMIN_CLIENTS')   content = <AdminClients />;
+  else if (view === 'ADMIN_WORKERS')   content = <AdminWorkers />;
+  else if (view === 'ADMIN_APPROVALS') content = <AdminApprovals />;
+  else if (view === 'ADMIN_SUPPORT')   content = <AdminSupport />;
+  else if (view === 'ADMIN_CHATS')     content = <AdminChats />;
   else                                        content = <HomeContratante onSelectWorker={setSelectedWorkerId} />;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans relative selection:bg-red-100 selection:text-[#EA1D2C]">
+    <div className="demo-mode min-h-screen pt-8 bg-[#F8FAFC] flex flex-col font-sans relative selection:bg-red-100 selection:text-[#EA1D2C]">
+      <div className="fixed top-0 inset-x-0 z-[60] h-8 flex items-center justify-center bg-amber-100 text-amber-950 text-[11px] sm:text-xs font-semibold px-2">{DATA_MODE === 'local' ? 'Demonstração local · Dados salvos só neste navegador' : 'Teste de backend · Firebase emulado neste computador'}</div>
       <Toast />
       {!hideNav && <NavBar />}
 
       <main className={`flex-1 w-full relative z-10 ${navPaddingClass}`}>
-        {content}
+        <Suspense fallback={<p className="p-8 text-center text-slate-500">Abrindo página...</p>}>{content}</Suspense>
       </main>
 
       <SupportWidget />
@@ -158,13 +155,13 @@ function AppRouter() {
 
             <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-xs font-medium text-slate-500">
               <span className="flex items-center gap-1.5">
-                <i className="ph-fill ph-shield-check text-emerald-500 text-sm" /> Profissionais Verificados
+                <i className="ph-fill ph-shield-check text-emerald-500 text-sm" /> Perfis da demonstração
               </span>
               <button
                 onClick={() => setShowPrivacyModal(true)}
                 className="flex items-center gap-1.5 hover:text-[#EA1D2C] transition cursor-pointer"
               >
-                <i className="ph-fill ph-lock-key text-slate-400 text-sm" /> Política de Privacidade & LGPD
+                <i className="ph-fill ph-lock-key text-slate-400 text-sm" /> Sobre os dados locais
               </button>
               <span className="flex items-center gap-1.5">
                 <i className="ph-fill ph-headset text-[#EA1D2C] text-sm" /> Suporte Integrado

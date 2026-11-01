@@ -123,3 +123,5 @@
 }
 .animate-fade-in   { animation: fade-in   0.25s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-slide-down { animation: slide-down 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+.demo-mode header.fixed { top: 2rem; }

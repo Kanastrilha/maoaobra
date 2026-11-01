@@ -1,0 +1,50 @@
+name: Verificações da cópia local
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VITE_DATA_MODE: local
+    steps:
+      - name: Obter código sem persistir credenciais
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Preparar Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Instalar versões exatas sem scripts de dependências
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Validar código, domínio e compilação
+        run: npm run check
+      - name: Preparar Java para os emuladores
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Testar Auth, Firestore, Storage e funções nos emuladores
+        run: npm run test:backend
+      - name: Compilar integração com backend emulado
+        run: npm run build -- --mode emulator
+        env:
+          VITE_DATA_MODE: firebase-emulator
+      - name: Bloquear alertas altos e críticos
+        run: npm run audit:security
+
+# Este workflow não publica o frontend, não implanta regras e não acessa nuvem.
+# A pasta maoaobra-copia precisa ser a raiz do repositório para ativá-lo no GitHub.

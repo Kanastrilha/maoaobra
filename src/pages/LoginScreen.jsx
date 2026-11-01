@@ -1,27 +1,34 @@
 // src/pages/LoginScreen.jsx
 import { useState } from 'react';
 import { useAppStore } from '../store';
+import { DATA_MODE } from '../firebase.js';
+
+const DEMO_PASSWORD = DATA_MODE === 'local' ? '123' : 'TesteLocal@123';
 
 const DEMO_ACCOUNTS = [
-  { label: 'Cliente', email: 'pedro@gmail.com', icon: 'ph-user', desc: 'Contratar serviços' },
-  { label: 'Profissional', email: 'eduardo@gmail.com', icon: 'ph-hard-hat', desc: 'Eletricista (Eduardo)' },
-  { label: 'Administrador', email: 'legalmano@gmail.com', icon: 'ph-shield-check', desc: 'Gestão da plataforma' },
+  { label: 'Cliente', email: 'pedro@example.test', icon: 'ph-user', desc: 'Contratar serviços' },
+  { label: 'Profissional', email: 'eduardo@example.test', icon: 'ph-hard-hat', desc: 'Eletricista (Eduardo)' },
+  { label: 'Administrador', email: 'legalmano@example.test', icon: 'ph-shield-check', desc: 'Gestão da plataforma' },
 ];
 
 export default function LoginScreen() {
-  const { login, setCurrentView } = useAppStore();
+  const { login, setCurrentView, resetPassword, sendVerification } = useAppStore();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    login(email, senha);
+    setSubmitting(true);
+    try { await login(email, senha); } finally { setSubmitting(false); }
   };
 
-  const handleQuickLogin = (demoEmail) => {
+  const handleQuickLogin = async (demoEmail) => {
+    if (submitting) return;
     setEmail(demoEmail);
-    setSenha('123');
-    login(demoEmail, '123');
+    setSenha(DEMO_PASSWORD);
+    setSubmitting(true);
+    try { await login(demoEmail, DEMO_PASSWORD); } finally { setSubmitting(false); }
   };
 
   return (
@@ -53,12 +60,12 @@ export default function LoginScreen() {
             Conectando quem precisa a quem sabe fazer.
           </h2>
           <p className="text-slate-400 text-sm leading-relaxed mt-4 max-w-md">
-            Gerencie solicitações, negocie orçamentos pelo chat integrado e contrate especialistas avaliados pela comunidade com total segurança.
+            Gerencie solicitações, negocie orçamentos pelo chat integrado e contrate especialistas avaliados pela comunidade nesta demonstração local.
           </p>
 
           <div className="mt-8 space-y-3.5">
             {[
-              { icon: 'ph-seal-check', text: 'Profissionais verificados pela curadoria' },
+              { icon: 'ph-seal-check', text: 'Aprovação simulada de profissionais' },
               { icon: 'ph-chat-circle-dots', text: 'Orçamentos formais e chat em tempo real' },
               { icon: 'ph-clock', text: 'Disponibilidade inteligente por horário de expediente' },
             ].map((item, i) => (
@@ -73,7 +80,7 @@ export default function LoginScreen() {
         </div>
 
         <div className="relative z-10 text-xs text-slate-500 font-medium">
-          © 2026 mãoAobra Tecnologia • Ambiente seguro
+          © 2026 mãoAobra Tecnologia • Demonstração local
         </div>
       </div>
 
@@ -136,20 +143,26 @@ export default function LoginScreen() {
 
               <button
                 type="submit"
+                disabled={submitting}
                 className="w-full bg-[#EA1D2C] hover:bg-[#C81422] text-white font-semibold text-sm py-3 rounded-xl shadow-sm shadow-red-500/20 transition cursor-pointer mt-2"
               >
-                Entrar na Plataforma
+                {submitting ? 'Entrando...' : 'Entrar na Plataforma'}
               </button>
             </form>
+
+            {DATA_MODE === 'firebase-emulator' && <div className="mt-3 flex justify-between gap-3 text-xs text-slate-500">
+              <button type="button" disabled={submitting || !email} onClick={async () => { setSubmitting(true); try { await resetPassword(email); } finally { setSubmitting(false); } }} className="hover:text-[#EA1D2C]">Esqueci minha senha</button>
+              <button type="button" disabled={submitting || !email || !senha} onClick={async () => { setSubmitting(true); try { await sendVerification(email, senha); } finally { setSubmitting(false); } }} className="hover:text-[#EA1D2C]">Reenviar confirmação</button>
+            </div>}
 
             {/* Quick Demo Logins */}
             <div className="mt-6 pt-6 border-t border-slate-100">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Acesso Rápido (Demonstração)
+                  Contas fictícias para testar
                 </span>
                 <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
-                  Senha: 123
+                  Senha: {DEMO_PASSWORD}
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -157,6 +170,7 @@ export default function LoginScreen() {
                   <button
                     key={acc.email}
                     type="button"
+                    disabled={submitting}
                     onClick={() => handleQuickLogin(acc.email)}
                     className="flex flex-col items-center text-center p-2.5 rounded-xl border border-slate-200/80 hover:border-[#EA1D2C] hover:bg-red-50/40 transition group cursor-pointer"
                   >

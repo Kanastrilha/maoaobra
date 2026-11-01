@@ -1,46 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Coleções estruturadas em documentos individuais (Arquitetura de Produção)
-    match /col_users/{userId} {
-      allow read: if true;
-      allow create, update: if request.resource.data.keys().hasAll(['id', 'nome', 'email', 'role', 'status'])
-                            && !('senha' in request.resource.data); // Proíbe gravar senha em texto aberto
-      allow delete: if true;
-    }
-
-    match /col_worker_details/{workerId} {
-      allow read: if true;
-      allow write: if request.resource.data.keys().hasAll(['user_id']);
-      allow delete: if true;
-    }
-
-    match /col_contratante_details/{clientId} {
-      allow read: if true;
-      allow write: if request.resource.data.keys().hasAll(['user_id']);
-      allow delete: if true;
-    }
-
-    match /col_services/{serviceId} {
-      allow read: if true;
-      allow write: if request.resource.data.preco_base is number && request.resource.data.preco_base > 0;
-      allow delete: if true;
-    }
-
-    match /col_orders/{orderId} {
-      allow read, write, delete: if true;
-    }
-
-    match /col_reviews/{reviewId} {
-      allow read: if true;
-      allow create, update: if request.resource.data.nota >= 1 && request.resource.data.nota <= 5;
-      allow delete: if true;
-    }
-
-    match /col_support_tickets/{ticketId} {
-      allow read, write, delete: if true;
+    // Esta cópia usa somente IndexedDB. Nenhum acesso remoto está habilitado.
+    // Não publique estas regras no projeto original.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
-
