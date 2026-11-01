@@ -17,6 +17,8 @@
   "scripts": {
     "dev": "vite",
     "dev:backend": "vite --mode emulator",
+    "build:firebase": "vite build --mode firebase",
+    "deploy:firebase": "node scripts/deploy-firebase.js",
     "emulators": "node scripts/emulators.js start",
     "test:backend": "node scripts/emulators.js test",
     "seed:emulators": "node scripts/seed-emulators.js",

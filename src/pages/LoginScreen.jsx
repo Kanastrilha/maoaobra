@@ -150,13 +150,13 @@ export default function LoginScreen() {
               </button>
             </form>
 
-            {DATA_MODE === 'firebase-emulator' && <div className="mt-3 flex justify-between gap-3 text-xs text-slate-500">
+            {DATA_MODE !== 'local' && <div className="mt-3 flex justify-between gap-3 text-xs text-slate-500">
               <button type="button" disabled={submitting || !email} onClick={async () => { setSubmitting(true); try { await resetPassword(email); } finally { setSubmitting(false); } }} className="hover:text-[#EA1D2C]">Esqueci minha senha</button>
               <button type="button" disabled={submitting || !email || !senha} onClick={async () => { setSubmitting(true); try { await sendVerification(email, senha); } finally { setSubmitting(false); } }} className="hover:text-[#EA1D2C]">Reenviar confirmação</button>
             </div>}
 
             {/* Quick Demo Logins */}
-            <div className="mt-6 pt-6 border-t border-slate-100">
+            {DATA_MODE !== 'firebase' && <div className="mt-6 pt-6 border-t border-slate-100">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   Contas fictícias para testar
@@ -180,7 +180,7 @@ export default function LoginScreen() {
                   </button>
                 ))}
               </div>
-            </div>
+            </div>}
 
             <div className="mt-6 pt-5 border-t border-slate-100 text-center">
               <p className="text-xs text-slate-500 font-medium">

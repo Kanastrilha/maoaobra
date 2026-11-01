@@ -1,13 +1,13 @@
 {
-  "name": "MãoAobra — Cópia local",
+  "name": "MãoAobra",
   "short_name": "MãoAobra",
-  "start_url": "/maoaobra-copia/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#F9FAFB",
   "theme_color": "#EA1D2C",
   "icons": [
     {
-      "src": "/maoaobra-copia/icon.svg",
+      "src": "./icon.svg",
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"

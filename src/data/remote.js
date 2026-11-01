@@ -3,6 +3,8 @@ import { getAuth, connectAuthEmulator, browserSessionPersistence, setPersistence
 import { getFirestore, connectFirestoreEmulator, doc, onSnapshot } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
 import { DEMO_PROJECT as PROJECT, EMULATOR_PORTS } from '../../functions/src/config.js';
+import { FIREBASE_TARGET } from '../../functions/src/target.js';
+import { DATA_MODE, getCloudConfiguration } from '../firebase.js';
 
 let auth, db, functions;
 const listeners = new Set();
@@ -12,8 +14,8 @@ function friendly(error) {
     'invalid-credential': 'E-mail ou senha incorretos.', 'user-not-found': 'E-mail ou senha incorretos.', 'wrong-password': 'E-mail ou senha incorretos.',
     'email-already-in-use': 'Não foi possível concluir o cadastro com este e-mail. Tente entrar ou recuperar a senha.',
     'invalid-email': 'Informe um e-mail válido.', 'too-many-requests': 'Muitas tentativas. Aguarde antes de tentar novamente.',
-    'network-request-failed': 'Emuladores indisponíveis. Execute npm run emulators.',
-    'unavailable': 'Backend indisponível. Execute npm run emulators.', 'internal': 'O backend não respondeu. Confira os emuladores e tente novamente.',
+    'network-request-failed': 'Não foi possível conectar. Verifique sua conexão e tente novamente.',
+    'unavailable': 'Backend indisponível. Tente novamente em instantes.', 'internal': 'O backend não respondeu. Tente novamente.',
   };
   return new Error(messages[code] || error.message || 'Não foi possível concluir a operação.');
 }
@@ -23,13 +25,19 @@ async function call(name, data) {
 }
 export async function initializeLocalDatabase() {
   if (auth) return;
-  if (!['127.0.0.1', 'localhost'].includes(window.location.hostname)) throw new Error('O modo emulador só funciona neste computador.');
-  const app = initializeApp({ projectId: PROJECT, apiKey: 'emulator-only-api-key', authDomain: `${PROJECT}.firebaseapp.com`, storageBucket: `${PROJECT}.appspot.com` }, 'backend-emulator');
-  auth = getAuth(app); db = getFirestore(app); functions = getFunctions(app, 'southamerica-east1');
-  // Conectar antes de qualquer operação: nenhuma tentativa usa endpoints de nuvem.
-  connectAuthEmulator(auth, `http://127.0.0.1:${EMULATOR_PORTS.auth}`, { disableWarnings: true });
-  connectFirestoreEmulator(db, '127.0.0.1', EMULATOR_PORTS.firestore);
-  connectFunctionsEmulator(functions, '127.0.0.1', EMULATOR_PORTS.functions);
+  const emulated = DATA_MODE === 'firebase-emulator';
+  if (emulated && !['127.0.0.1', 'localhost'].includes(window.location.hostname)) throw new Error('O modo emulador só funciona neste computador.');
+  const config = emulated ? { projectId: PROJECT, apiKey: 'emulator-only-api-key', authDomain: `${PROJECT}.firebaseapp.com`, storageBucket: `${PROJECT}.appspot.com` } : getCloudConfiguration();
+  const app = initializeApp(config, emulated ? 'backend-emulator' : 'backend-cloud');
+  auth = getAuth(app); db = getFirestore(app); functions = getFunctions(app, FIREBASE_TARGET.region);
+  if (emulated) {
+    connectAuthEmulator(auth, `http://127.0.0.1:${EMULATOR_PORTS.auth}`, { disableWarnings: true });
+    connectFirestoreEmulator(db, '127.0.0.1', EMULATOR_PORTS.firestore);
+    connectFunctionsEmulator(functions, '127.0.0.1', EMULATOR_PORTS.functions);
+  } else {
+    const { initializeAppCheck, ReCaptchaEnterpriseProvider } = await import('firebase/app-check');
+    initializeAppCheck(app, { provider: new ReCaptchaEnterpriseProvider(import.meta.env.VITE_APPCHECK_SITE_KEY), isTokenAutoRefreshEnabled: true });
+  }
   await setPersistence(auth, browserSessionPersistence);
   await auth.authStateReady();
 }
@@ -61,7 +69,7 @@ export const getLocalSnapshot = () => call('getSnapshot', {});
 export async function loginLocal(email, password) {
   try {
     const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
-    if (!credential.user.emailVerified) throw new Error('Confirme seu e-mail no emulador antes de entrar.');
+    if (!credential.user.emailVerified) throw new Error('Confirme seu e-mail antes de entrar.');
     const snapshot = await getLocalSnapshot();
     if (!snapshot.currentUser) throw new Error('Cadastro profissional pendente, recusado ou conta indisponível.');
     return snapshot.currentUser;

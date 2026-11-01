@@ -2,6 +2,8 @@
 
 Esta pasta é a versão de trabalho independente. O projeto original continua na Área de Trabalho, em `maosobra`.
 
+O código já foi enviado à branch `codex/backend-seguranca` do GitHub. A preparação para o Firebase real está em [docs/FIREBASE-REAL.md](docs/FIREBASE-REAL.md). O destino autorizado é `maoaobra-51218`; a implantação ainda depende de habilitar Blaze e configurar Auth/App Check. As instruções a seguir descrevem os modos de teste locais.
+
 ## Executar
 
 Use Node.js 24, conforme `.nvmrc` e `engines` no `package.json`.
@@ -25,7 +27,7 @@ npm run audit:security
 
 ## Como os dados funcionam
 
-- Há dois modos independentes: **local**, com IndexedDB em `maoaobra-copia-v1`, e **firebase-emulator**, com Auth, Firestore e funções executados neste computador.
+- Há três modos explícitos: **local**, com IndexedDB; **firebase-emulator**, com serviços neste computador; e **firebase**, para o projeto real autorizado mediante configuração completa. Os dados de demonstração são independentes da nuvem.
 - Para testar o backend, siga [docs/BACKEND-EMULADORES.md](docs/BACKEND-EMULADORES.md): `npm run emulators`, `npm run seed:emulators` e `npm run dev:backend`. As instruções e contas abaixo nesta seção referem-se ao modo IndexedDB.
 - Não há conexão com o Firebase original, envio de endereço para geocodificação ou preenchimento automático com GPS.
 - Variáveis `VITE_FIREBASE_*`, outro `VITE_DATA_MODE` ou variáveis `VITE_` fora da lista permitida impedem também a compilação. Variáveis `VITE_` são públicas e não devem conter segredos.
@@ -53,7 +55,7 @@ O expediente considera os dias de trabalho, o fuso `America/Cuiaba` e horários 
 
 ## Antes de conectar um serviço público
 
-O backend já implementa Auth, autorização de operações e separação dos dados públicos e privados nos emuladores. A conexão com a nuvem continua desabilitada. Será necessário criar um ambiente de homologação separado e completar os itens operacionais documentados. As contas fictícias não devem ser migradas para produção.
+O backend já implementa Auth, autorização de operações e separação dos dados públicos e privados nos emuladores. O modo de nuvem está preparado, mas ainda não foi implantado. É necessário completar os itens de cobrança, configuração e operação descritos em `docs/FIREBASE-REAL.md`. As contas fictícias não devem ser migradas para produção.
 
 Os arquivos `firestore.rules` e `storage.rules` bloqueiam todo acesso remoto por precaução. **Não publique essas regras no projeto original**, pois bloqueariam seu funcionamento. Nenhuma regra foi implantada.
 

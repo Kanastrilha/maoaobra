@@ -27,6 +27,7 @@ dist-ssr
 .env.*
 !.env.example
 !.env.emulator
+!.env.firebase.example
 .npm-cache
 
 # Credenciais privadas, dados exportados e cache de infraestrutura

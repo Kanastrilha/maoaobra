@@ -125,7 +125,7 @@ function AppRouter() {
 
   return (
     <div className="demo-mode min-h-screen pt-8 bg-[#F8FAFC] flex flex-col font-sans relative selection:bg-red-100 selection:text-[#EA1D2C]">
-      <div className="fixed top-0 inset-x-0 z-[60] h-8 flex items-center justify-center bg-amber-100 text-amber-950 text-[11px] sm:text-xs font-semibold px-2">{DATA_MODE === 'local' ? 'Demonstração local · Dados salvos só neste navegador' : 'Teste de backend · Firebase emulado neste computador'}</div>
+      <div className="fixed top-0 inset-x-0 z-[60] h-8 flex items-center justify-center bg-amber-100 text-amber-950 text-[11px] sm:text-xs font-semibold px-2">{DATA_MODE === 'firebase' ? 'Versão de testes · Dados armazenados no Firebase' : DATA_MODE === 'local' ? 'Demonstração local · Dados salvos só neste navegador' : 'Teste de backend · Firebase emulado neste computador'}</div>
       <Toast />
       {!hideNav && <NavBar />}
 

@@ -98,15 +98,15 @@ export const useAppStore = create((set, get) => {
       try {
         const created = await registerLocal(user, details); await refresh();
         get().setCurrentView(DATA_MODE === 'local' && created.role === 'CONTRATANTE' ? 'HOME' : 'LOGIN');
-        get().showToast(DATA_MODE === 'local' ? (created.role === 'CONTRATANTE' ? 'Conta local criada com sucesso!' : 'Cadastro enviado para análise na demonstração.') : 'Conta criada. Confirme o e-mail no emulador; profissionais também precisam de aprovação.'); return true;
+        get().showToast(DATA_MODE === 'local' ? (created.role === 'CONTRATANTE' ? 'Conta local criada com sucesso!' : 'Cadastro enviado para análise na demonstração.') : 'Conta criada. Confirme seu e-mail; profissionais também precisam de aprovação.'); return true;
       } catch (error) { get().showToast(error.message, 'error'); return false; }
     },
     resetPassword: async email => {
-      try { await resetPassword(email); get().showToast('Se houver uma conta para este e-mail, as instruções de recuperação estarão disponíveis no emulador.'); return true; }
+      try { await resetPassword(email); get().showToast(DATA_MODE === 'firebase' ? 'Se houver uma conta para este e-mail, você receberá as instruções de recuperação.' : 'Se houver uma conta para este e-mail, as instruções de recuperação estarão disponíveis no emulador.'); return true; }
       catch (error) { get().showToast(error.message, 'error'); return false; }
     },
     sendVerification: async (email, password) => {
-      try { await sendVerification(email, password); get().showToast('Consulte o link de confirmação no emulador de autenticação.'); return true; }
+      try { await sendVerification(email, password); get().showToast(DATA_MODE === 'firebase' ? 'Confira seu e-mail para confirmar o cadastro.' : 'Consulte o link de confirmação no emulador de autenticação.'); return true; }
       catch (error) { get().showToast(error.message, 'error'); return false; }
     },
     saveService: service => run({ type: 'saveService', service }),

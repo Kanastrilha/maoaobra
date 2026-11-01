@@ -2,6 +2,8 @@
 
 Implementação isolada para testar o backend sem criar recursos de nuvem. O único projeto aceito é `demo-maoaobra-copia`. O código recusa configurações Firebase de nuvem, projetos diferentes e hosts de banco/autenticação fora dos emuladores previstos.
 
+Esta restrição refere-se ao modo emulador. Há agora também um modo de nuvem explicitamente configurado e separado, documentado em [FIREBASE-REAL.md](FIREBASE-REAL.md); ele ainda não foi implantado.
+
 ## Executar
 
 Pré-requisitos: Node.js 24 para as ferramentas deste checkout e Java 21+. As funções declaram o runtime de implantação Node.js 22, atualmente suportado pelo Firebase. Neste computador, o emulador avisa que executa as funções com o Node.js 24 instalado. A compatibilidade com Node.js 22 deve ser validada antes da futura implantação.
@@ -84,7 +86,7 @@ O navegador também foi verificado com o site conectado aos emuladores: carregam
 
 ## Limitações explícitas desta etapa
 
-1. **Nuvem desabilitada.** Não foram criados Firebase de homologação, cobrança, domínio, IAM, backup ou monitoramento. O backend se recusa a executar em configuração de produção. App Check é dispensado somente pelo runtime do emulador; a futura conexão em nuvem precisa de provedor e enforcement próprios.
+1. **Nuvem ainda não implantada.** O modo emulador recusa outros projetos. O modo de nuvem exige configuração explícita do projeto autorizado e App Check; seu estado e pendências estão em `FIREBASE-REAL.md`. App Check é dispensado somente pelo runtime do emulador.
 2. **Uploads fechados.** O Storage nega leitura e escrita. Envio de imagens no backend aguarda validação de conteúdo, normalização, privacidade e processamento seguro. A interface avisa em vez de fingir que salvou.
 3. **Exclusão remota fechada.** Aguarda política de retenção e rotina recuperável que coordene Auth, documentos e arquivos. Rejeitar um profissional marca `REJECTED`; não apaga silenciosamente o cadastro.
 4. **Leituras limitadas.** O snapshot retorna até 100 perfis públicos, 200 serviços, 200 avaliações públicas, 50 pedidos e 100 mensagens por conversa. O limite é informado na resposta e há indicador `messagesHaveMore` em pedidos. A interface de paginação e o cálculo de métricas para bases maiores ainda precisam ser implementados.

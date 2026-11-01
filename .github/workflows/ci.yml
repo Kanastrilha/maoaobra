@@ -43,6 +43,15 @@ jobs:
         run: npm run build -- --mode emulator
         env:
           VITE_DATA_MODE: firebase-emulator
+      - name: Verificar compilação de nuvem sem credenciais reais
+        run: npm run build:firebase
+        env:
+          VITE_DATA_MODE: firebase
+          VITE_FIREBASE_PROJECT_ID: maoaobra-51218
+          VITE_FIREBASE_APP_ID: 1:658075256499:web:f4ed19490baae47f1152c6
+          VITE_FIREBASE_AUTH_DOMAIN: maoaobra-51218.firebaseapp.com
+          VITE_FIREBASE_API_KEY: AIzaTestBuildOnly_12345678901234567890
+          VITE_APPCHECK_SITE_KEY: test_build_only_key_1234567890
       - name: Bloquear alertas altos e críticos
         run: npm run audit:security
 

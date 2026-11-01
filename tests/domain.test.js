@@ -32,7 +32,7 @@ test('Configuração pública não aceita variáveis VITE_ fora da lista permiti
     error => error.message.includes('VITE_') && !error.message.includes('test-only-marker'));
 });
 
-test('Somente modo local e emulador sem configuração de nuvem são habilitados', () => {
+test('Modos de demonstração continuam isolados e nuvem exige configuração completa', () => {
   assert.doesNotThrow(() => assertAppConfiguration({ VITE_DATA_MODE: 'firebase-emulator' }));
   assert.throws(() => assertAppConfiguration({ VITE_DATA_MODE: 'firebase-emulator', VITE_FIREBASE_PROJECT_ID: 'outro-projeto' }));
   assert.throws(() => assertAppConfiguration({ VITE_DATA_MODE: 'firebase-staging' }));

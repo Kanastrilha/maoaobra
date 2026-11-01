@@ -3,7 +3,7 @@ import { DATA_MODE, assertAppConfiguration } from '../firebase.js';
 let adapter;
 export async function initializeLocalDatabase() {
   assertAppConfiguration();
-  adapter ||= await (DATA_MODE === 'firebase-emulator' ? import('./remote.js') : import('./local.js'));
+  adapter ||= await (DATA_MODE !== 'local' ? import('./remote.js') : import('./local.js'));
   await adapter.initializeLocalDatabase();
 }
 const ready = () => {

@@ -3,16 +3,18 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
 import { createBackend } from './backend.js';
-import { assertEmulatorRuntime } from './security.js';
-import { DEMO_PROJECT } from './config.js';
+import { resolveBackendRuntime, fail } from './security.js';
+import { FIREBASE_TARGET } from './target.js';
 
-initializeApp({ projectId: DEMO_PROJECT });
-const backend = createBackend(getFirestore());
-const options = { region: 'southamerica-east1', memory: '256MiB', timeoutSeconds: 30, maxInstances: 3, concurrency: 10,
-  enforceAppCheck: process.env.FUNCTIONS_EMULATOR !== 'true', cors: [/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/] };
-const protect = handler => async request => {
-  assertEmulatorRuntime();
-  try { return await handler(request); }
+let backend;
+const emulated = process.env.FUNCTIONS_EMULATOR === 'true';
+const options = { region: FIREBASE_TARGET.region, memory: '256MiB', timeoutSeconds: 30, maxInstances: 2, minInstances: 0, concurrency: 10,
+  enforceAppCheck: !emulated, cors: emulated ? [/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/] : FIREBASE_TARGET.origins };
+const protect = operation => async request => {
+  const runtime = resolveBackendRuntime();
+  if (runtime.mode === 'cloud') fail(request.app?.appId === FIREBASE_TARGET.appId, 'Aplicativo não autorizado.');
+  if (!backend) { initializeApp({ projectId: runtime.projectId }); backend = createBackend(getFirestore()); }
+  try { return await backend[operation](request); }
   catch (error) {
     if (error instanceof HttpsError) throw error;
     // Não registrar payloads, mensagens de chat, credenciais ou erro interno cru.
@@ -20,5 +22,5 @@ const protect = handler => async request => {
     throw new HttpsError('internal', 'Não foi possível concluir. Tente novamente.');
   }
 };
-export const executeCommand = onCall(options, protect(backend.execute));
-export const getSnapshot = onCall(options, protect(backend.snapshot));
+export const executeCommand = onCall(options, protect('execute'));
+export const getSnapshot = onCall(options, protect('snapshot'));
